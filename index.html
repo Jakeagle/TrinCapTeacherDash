@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+
+    <title>Trinity Capital Teacher Dashboard</title>
+    <link
+      rel="shortcut icon"
+      type="image/png"
+      href="png-transparent-black-artwork-il.png"
+    />
+
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" type="text/css" href="style.css" />
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN"
+      crossorigin="anonymous"
+    ></script>
+
+    <script
+      src="https://cdn.socket.io/4.6.0/socket.io.min.js"
+      integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- <script>
+      alert(
+        'WEBSITE STILL IN DEVELOPEMENT: This launch is a developement launch designed for testing and showcase. Some features may not be implemented, and theyre still might be issues and bugs that havent been discovered'
+      );
+    </script> -->
+
+    <script
+      src="https://kit.fontawesome.com/60a3862749.js"
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <!----Customer login section----->
+    <div class="page">
+      <div class="header">
+        <div class="row headerRow">
+          <div class="col title-div">
+            <h1 class="title1">Trinity</h1>
+          </div>
+          <div class="col image-div">
+            <img
+              src="png-transparent-black-artwork-il.png"
+              alt="Logo"
+              class="logo"
+            />
+          </div>
+          <div class="col title-div-2">
+            <h1 class="title2">Capital</h1>
+          </div>
+        </div>
+      </div>
+
+      <hr />
+      <div class="signOnSection">
+        <div class="signOnprompt">
+          <h2 class="signOntext headings">Sign in with your teacher info</h2>
+        </div>
+
+        <div class="signOnForm">
+          <div class="row formDiv">
+            <div class="col-lg-4 col-md-4 col-sm-6 usernameBox">
+              <input
+                type="text"
+                placeholder="username"
+                class="login__input login__input--user signOnGroup"
+              />
+            </div>
+
+            <div class="col-lg-4 col-md-4 col-sm-6 pinBox">
+              <input
+                type="text"
+                placeholder="PIN"
+                maxlength="6"
+                class="login__input login__input--pin signOnGroup"
+              />
+            </div>
+
+            <div class="col-lg-4 col-md-4 col-sm-6 button">
+              <button class="login__btn signOnGroup">&rarr;</button>
+            </div>
+          </div>
+        </div>
+        <hr />
+      </div>
+
+      <div class="app">
+        <div class="studentSection">
+          <div class="row blockRow">
+            <div class="col-3 studentBlock boxes">
+              <h3 class="studentName">Jakob Ferguson</h3>
+            </div>
+            <div class="col-3 studentBlock boxes"></div>
+            <div class="col-3 studentBlock boxes"></div>
+            <div class="col-3 studentBlock boxes"></div>
+            <div class="col-3 studentBlock boxes"></div>
+            <div class="col-3 studentBlock boxes"></div>
+            <div class="col-3 studentBlock boxes"></div>
+            <div class="col-3 studentBlock boxes"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js" type="module"></script>
+  </body>
+</html>
