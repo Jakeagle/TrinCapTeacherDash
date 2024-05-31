@@ -34,6 +34,9 @@
       crossorigin="anonymous"
     ></script>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+
     <!-- <script>
       alert(
         'WEBSITE STILL IN DEVELOPEMENT: This launch is a developement launch designed for testing and showcase. Some features may not be implemented, and theyre still might be issues and bugs that havent been discovered'
@@ -99,20 +102,22 @@
         <hr />
       </div>
 
+      <div class="selectPeriod">
+        <h2 class="periodHeader headings">Select your class period</h2>
+
+        <select name="classPeriods" id="periods" class="periodSelect">
+          <option value="0">Select Period</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+        <a href="#" class="myButton periodBTN">Select Period</a>
+      </div>
+
       <div class="app">
         <div class="studentSection">
-          <div class="row blockRow">
-            <div class="col-3 studentBlock boxes">
-              <h3 class="studentName">Jakob Ferguson</h3>
-            </div>
-            <div class="col-3 studentBlock boxes"></div>
-            <div class="col-3 studentBlock boxes"></div>
-            <div class="col-3 studentBlock boxes"></div>
-            <div class="col-3 studentBlock boxes"></div>
-            <div class="col-3 studentBlock boxes"></div>
-            <div class="col-3 studentBlock boxes"></div>
-            <div class="col-3 studentBlock boxes"></div>
-          </div>
+          <div class="row blockRow"></div>
         </div>
       </div>
     </div>
