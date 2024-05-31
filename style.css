@@ -29,6 +29,12 @@ hr {
   margin: 1rem 0 1rem 0;
 }
 
+.sbHR {
+  margin: auto;
+  position: relative;
+  bottom: 2rem;
+}
+
 .headings {
   font-family: "Montserrat", sans-serif;
   text-align: center;
@@ -88,6 +94,46 @@ hr {
 
   text-align: center;
   height: 100%;
+}
+
+.myButton {
+  box-shadow: inset -1px 4px 0px 0px #ffffff;
+  background: linear-gradient(to bottom, #f9f9f9 5%, #e9e9e9 100%);
+  background-color: #f9f9f9;
+  border-radius: 12px;
+  border: 3px solid #dcdcdc;
+  display: inline-block;
+  cursor: pointer;
+  color: #666666;
+  font-family: Arial;
+  font-size: 15px;
+  font-weight: bold;
+  padding: 9px 45px;
+  text-decoration: none;
+  text-shadow: 0px 2px 0px #ffffff;
+  margin: -1.5rem auto;
+  margin-left: 7rem;
+}
+.myButton:hover {
+  background: linear-gradient(to bottom, #e9e9e9 5%, #f9f9f9 100%);
+  background-color: #e9e9e9;
+}
+
+.periodSelect {
+  margin: auto;
+  position: relative;
+  left: 42%;
+}
+
+.myButton:active {
+  position: relative;
+  top: 1px;
+}
+
+.periodBTN {
+  margin: auto;
+  position: relative;
+  left: 42.8%;
 }
 
 .banking {
@@ -531,6 +577,24 @@ a:hover {
 
 .clearStorage {
   color: white;
+}
+
+.percent {
+  position: relative;
+  bottom: 48%;
+  left: 40%;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.chart canvas {
+  width: 6rem !important;
+  height: 6rem !important;
+  margin: 1rem auto;
+}
+
+.studentName {
+  margin: 1rem auto;
 }
 
 @media (max-width: 376px) {
