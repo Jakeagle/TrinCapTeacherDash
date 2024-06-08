@@ -3,14 +3,14 @@
 /**************************************SERVER LINKS**********************************/
 
 // link to server endpoints
-const teacherFindURL = "http://localhost:3000/findTeacher";
-const retrieveStudentsURL = "http://localhost:3000/retrieveStudents";
-const studentInfoURL = "http://localhost:3000/studentInfo";
+const teacherFindURL = "https://trinitycapitaltestserver-2.azurewebsites.net/findTeacher";
+const retrieveStudentsURL = "https://trinitycapitaltestserver-2.azurewebsites.net/retrieveStudents";
+const studentInfoURL = "https://trinitycapitaltestserver-2.azurewebsites.net/studentInfo";
 
 /**************************************SOCKET.IO LINKS AND LISTENERS**********************************/
 
 // Link to socket.io endpoint
-export const socket = io("http://localhost:3000");
+export const socket = io("https://trinitycapitaltestserver-2.azurewebsites.net");
 
 // Listeners
 socket.on("signOn", ([signOnSuccessful, TeacherName]) => {
