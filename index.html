@@ -2,152 +2,185 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, shrink-to-fit=no"
-    />
-
-    <title>Trinity Capital Teacher Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teacher Dashboard</title>
     <link
-      rel="shortcut icon"
-      type="image/png"
-      href="png-transparent-black-artwork-il.png"
-    />
-
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
       rel="stylesheet"
-      integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD"
-      crossorigin="anonymous"
     />
-    <link rel="stylesheet" type="text/css" href="style.css" />
-    <link rel="stylesheet" href="dropdown.css" />
-    <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
-      integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN"
-      crossorigin="anonymous"
-    ></script>
-
-    <script
-      src="https://cdn.socket.io/4.6.0/socket.io.min.js"
-      integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+"
-      crossorigin="anonymous"
-    ></script>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
-
-    <!-- <script>
-      alert(
-        'WEBSITE STILL IN DEVELOPEMENT: This launch is a developement launch designed for testing and showcase. Some features may not be implemented, and theyre still might be issues and bugs that havent been discovered'
-      );
-    </script> -->
-
-    <script
-      src="https://kit.fontawesome.com/60a3862749.js"
-      crossorigin="anonymous"
-    ></script>
+    <link rel="stylesheet" href="dashboard.css" />
   </head>
+
   <body>
-    <!----Customer login section----->
-    <div class="page">
-      <div class="header">
-        <div class="row headerRow">
-          <div class="col title-div">
-            <h1 class="title1">Trinity</h1>
-          </div>
-          <div class="col image-div">
-            <img
-              src="png-transparent-black-artwork-il.png"
-              alt="Logo"
-              class="logo"
-            />
-          </div>
-          <div class="col title-div-2">
-            <h1 class="title2">Capital</h1>
-          </div>
-        </div>
+    <nav class="navbar navbar-expand-lg">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">Teacher Dashboard</a>
+        <span class="navbar-text">Ms. Thompson</span>
+      </div>
+    </nav>
+
+    <div class="dashboard">
+      <div class="sidebar">
+        <div class="class-health-score">Class Health: 86%</div>
+        <button class="btn">Create Lesson</button>
+        <button class="btn">Class Settings</button>
+        <button class="btn">Send Class Message</button>
+        <button class="btn">Email Parents/Staff</button>
+        <button class="btn">Access Whirlpool</button>
+        <button class="btn">Submit Lesson</button>
       </div>
 
-      <hr />
-      <div class="signOnSection">
-        <div class="signOnprompt">
-          <h2 class="signOntext headings">Sign in with your teacher info</h2>
-        </div>
-
-        <div class="signOnForm">
-          <div class="row formDiv">
-            <div class="col-lg-4 col-md-4 col-sm-6 usernameBox">
-              <input
-                type="text"
-                placeholder="username"
-                class="login__input login__input--user signOnGroup"
-              />
+      <div class="students-container">
+        <div class="class-period">
+          <h4>Period 1</h4>
+          <div class="students-grid">
+            <div class="student-card">
+              <canvas class="student-pie"></canvas>
+              <div class="student-info">
+                <h5>Emily Johnson</h5>
+                <p>Checking: $400</p>
+                <p>Savings: $600</p>
+                <p>Grade: 87</p>
+                <p>Lessons: 4</p>
+                <button class="message-btn">Message</button>
+              </div>
             </div>
-
-            <div class="col-lg-4 col-md-4 col-sm-6 pinBox">
-              <input
-                type="text"
-                placeholder="PIN"
-                maxlength="6"
-                class="login__input login__input--pin signOnGroup"
-              />
+            <div class="student-card">
+              <canvas class="student-pie"></canvas>
+              <div class="student-info">
+                <h5>Luke Carter</h5>
+                <p>Checking: $320</p>
+                <p>Savings: $480</p>
+                <p>Grade: 92</p>
+                <p>Lessons: 5</p>
+                <button class="message-btn">Message</button>
+              </div>
             </div>
-
-            <div class="col-lg-4 col-md-4 col-sm-6 button">
-              <button class="login__btn signOnGroup">&rarr;</button>
+            <div class="student-card">
+              <canvas class="student-pie"></canvas>
+              <div class="student-info">
+                <h5>Sophia Lee</h5>
+                <p>Checking: $290</p>
+                <p>Savings: $700</p>
+                <p>Grade: 88</p>
+                <p>Lessons: 3</p>
+                <button class="message-btn">Message</button>
+              </div>
+            </div>
+            <div class="student-card">
+              <canvas class="student-pie"></canvas>
+              <div class="student-info">
+                <h5>Noah Smith</h5>
+                <p>Checking: $350</p>
+                <p>Savings: $300</p>
+                <p>Grade: 76</p>
+                <p>Lessons: 2</p>
+                <button class="message-btn">Message</button>
+              </div>
             </div>
           </div>
         </div>
-        <hr />
-      </div>
 
-      <div class="selectPeriod">
-        <h2 class="periodHeader headings">Select your class period</h2>
+        <div class="class-period">
+          <h4>Period 2</h4>
+          <div class="students-grid">
+            <div class="student-card">
+              <canvas class="student-pie"></canvas>
+              <div class="student-info">
+                <h5>Olivia Brown</h5>
+                <p>Checking: $370</p>
+                <p>Savings: $550</p>
+                <p>Grade: 90</p>
+                <p>Lessons: 4</p>
+                <button class="message-btn">Message</button>
+              </div>
+            </div>
+            <div class="student-card">
+              <canvas class="student-pie"></canvas>
+              <div class="student-info">
+                <h5>James Wilson</h5>
+                <p>Checking: $420</p>
+                <p>Savings: $420</p>
+                <p>Grade: 85</p>
+                <p>Lessons: 4</p>
+                <button class="message-btn">Message</button>
+              </div>
+            </div>
+            <div class="student-card">
+              <canvas class="student-pie"></canvas>
+              <div class="student-info">
+                <h5>Ava Martinez</h5>
+                <p>Checking: $390</p>
+                <p>Savings: $330</p>
+                <p>Grade: 80</p>
+                <p>Lessons: 3</p>
+                <button class="message-btn">Message</button>
+              </div>
+            </div>
+            <div class="student-card">
+              <canvas class="student-pie"></canvas>
+              <div class="student-info">
+                <h5>Benjamin Davis</h5>
+                <p>Checking: $460</p>
+                <p>Savings: $500</p>
+                <p>Grade: 89</p>
+                <p>Lessons: 5</p>
+                <button class="message-btn">Message</button>
+              </div>
+            </div>
+          </div>
+        </div>
 
-        <select name="classPeriods" id="periods" class="periodSelect">
-          <option value="0">Select Period</option>
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3">3</option>
-          <option value="4">4</option>
-        </select>
-        <a href="#" class="myButton periodBTN">Select Period</a>
-      </div>
-
-      <div class="app">
-        <div class="studentSection">
-          <div class="row blockRow"></div>
+        <div class="class-period">
+          <h4>Period 3</h4>
+          <div class="students-grid">
+            <div class="student-card">
+              <canvas class="student-pie"></canvas>
+              <div class="student-info">
+                <h5>Ella Moore</h5>
+                <p>Checking: $410</p>
+                <p>Savings: $640</p>
+                <p>Grade: 93</p>
+                <p>Lessons: 5</p>
+                <button class="message-btn">Message</button>
+              </div>
+            </div>
+            <div class="student-card">
+              <canvas class="student-pie"></canvas>
+              <div class="student-info">
+                <h5>William Garcia</h5>
+                <p>Checking: $330</p>
+                <p>Savings: $320</p>
+                <p>Grade: 79</p>
+                <p>Lessons: 2</p>
+                <button class="message-btn">Message</button>
+              </div>
+            </div>
+            <div class="student-card">
+              <canvas class="student-pie"></canvas>
+              <div class="student-info">
+                <h5>Chloe Martin</h5>
+                <p>Checking: $310</p>
+                <p>Savings: $510</p>
+                <p>Grade: 91</p>
+                <p>Lessons: 4</p>
+                <button class="message-btn">Message</button>
+              </div>
+            </div>
+            <div class="student-card">
+              <canvas class="student-pie"></canvas>
+              <div class="student-info">
+                <h5>Daniel Rodriguez</h5>
+                <p>Checking: $280</p>
+                <p>Savings: $400</p>
+                <p>Grade: 82</p>
+                <p>Lessons: 3</p>
+                <button class="message-btn">Message</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-
-    <script src="script.js" type="module"></script>
-    <script src="dropdown.js" type="module"></script>
   </body>
-
-  <dialog open class="baseModal studentModal">
-    <h1 class="moreInfoTitle headings">More Information</h1>
-    <hr />
-    <h2 class="nameMI headings">Jakob Ferguson</h2>
-
-    <div class="row scoresRow">
-      <div class="col-6 testScore">
-        <h4 class="headings testScoreTitle">Test Scores</h4>
-        <div class="dropdown">
-          <div class="select">
-            <span class="selected"></span>
-            <div class="caret"></div>
-          </div>
-          <ul class="menu">
-            <li>Earning and Spending 2</li>
-            <li>Earning and Spending 3</li>
-            <li>Credit</li>
-            <li class="active">Earning and Spending 1</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </dialog>
 </html>
