@@ -1,6 +1,8 @@
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap");
+
 body {
   background-color: #f3f0ff;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Montserrat", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   color: #1e1e2f;
 }
 
@@ -132,6 +134,10 @@ body {
 
 .message-btn:hover {
   background-color: #4c0e8a;
+}
+
+.hidden-until-login {
+  display: none !important;
 }
 
 @media (max-width: 768px) {
