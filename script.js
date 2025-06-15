@@ -171,7 +171,15 @@ signOnDialog
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ parcel: [username, hashedPin] }),
       });
+      let teacherName = username;
       if (response.ok) {
+        // Try to get teacher name from response if available
+        try {
+          const data = await response.json();
+          if (data && data.name) {
+            teacherName = data.name;
+          }
+        } catch (e) {}
         signOnDialog.close();
         window.activeTeacherUsername = username;
         // Show dashboard and navbar
@@ -181,6 +189,11 @@ signOnDialog
         document
           .querySelector(".navbar")
           .classList.remove("hidden-until-login");
+        // Update navbar teacher name
+        const navbarText = document.querySelector(".navbar-text");
+        if (navbarText) navbarText.textContent = teacherName;
+        // Load students
+        loadTeacherStudents(username);
       } else {
         errorDiv.textContent = "Invalid username or PIN.";
       }
@@ -395,4 +408,78 @@ document.addEventListener("DOMContentLoaded", function () {
       console.log(`Message button ${idx + 1} clicked: ${student}`);
     });
   });
+});
+
+// Fetch and display students by class period after login
+async function loadTeacherStudents(teacherUsername) {
+  try {
+    const response = await fetch("https://trinitycapitaltestserver-2.azurewebsites.net/teacherDashboard", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ teacherUsername }),
+    });
+    const data = await response.json();
+    if (response.ok && Array.isArray(data.students)) {
+      // Clear all students from each period
+      document
+        .querySelectorAll(".students-grid")
+        .forEach((grid) => (grid.innerHTML = ""));
+      data.students.forEach((student) => {
+        // Determine period index (1-based)
+        let periodNum = parseInt(student.classPeriod);
+        if (isNaN(periodNum) || periodNum < 1 || periodNum > 3) periodNum = 1;
+        const periodGrid = document.querySelector(
+          `.class-period:nth-of-type(${periodNum}) .students-grid`
+        );
+        if (periodGrid) {
+          const card = document.createElement("div");
+          card.className = "student-card";
+          card.innerHTML = `
+            <canvas class="student-pie"></canvas>
+            <div class="student-info">
+              <h5>${student.memberName}</h5>
+              <p>Checking: $${student.checkingBalance}</p>
+              <p>Savings: $${student.savingsBalance}</p>
+              <p>Grade: ${student.grade}</p>
+              <p>Lessons: ${student.lessonsCompleted}</p>
+              <button class="message-btn">Message</button>
+            </div>
+          `;
+          periodGrid.appendChild(card);
+        }
+      });
+    }
+  } catch (err) {
+    console.error("Failed to load students:", err);
+  }
+}
+
+// Listen for new students being added live via socket.io
+const socket = io("https://trinitycapitaltestserver-2.azurewebsites.net", {
+  withCredentials: true,
+});
+
+socket.on("studentAdded", (student) => {
+  // Determine period index (1-based)
+  let periodNum = parseInt(student.classPeriod);
+  if (isNaN(periodNum) || periodNum < 1 || periodNum > 3) periodNum = 1;
+  const periodGrid = document.querySelector(
+    `.class-period:nth-of-type(${periodNum}) .students-grid`
+  );
+  if (periodGrid) {
+    const card = document.createElement("div");
+    card.className = "student-card";
+    card.innerHTML = `
+      <canvas class="student-pie"></canvas>
+      <div class="student-info">
+        <h5>${student.memberName}</h5>
+        <p>Checking: $${student.checkingBalance}</p>
+        <p>Savings: $${student.savingsBalance}</p>
+        <p>Grade: ${student.grade}</p>
+        <p>Lessons: ${student.lessonsCompleted}</p>
+        <button class="message-btn">Message</button>
+      </div>
+    `;
+    periodGrid.appendChild(card);
+  }
 });
