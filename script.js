@@ -1,141 +1,8 @@
-// Inject Montserrat font
-const montserratFont = document.createElement("link");
-montserratFont.rel = "stylesheet";
-montserratFont.href =
-  "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap";
-document.head.appendChild(montserratFont);
-
-// Inject dialog-specific styles
-const dialogStyle = document.createElement("style");
-dialogStyle.textContent = `
-  dialog#globalDialog {
-    background: #3b0a70;
-    color: #fff;
-    border: none;
-    border-radius: 20px;
-    font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    box-shadow: 0 4px 32px rgba(0,0,0,0.2);
-    padding: 0;
-    overflow: hidden;
-  }
-  dialog#globalDialog::backdrop {
-    background: rgba(0,0,0,0.5);
-  }
-  #globalDialog .dialog-header {
-    font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-weight: 700;
-    font-size: 1.3em;
-    color: #fff;
-    background: rgba(0,0,0,0.08);
-    border-top-left-radius: 20px;
-    border-top-right-radius: 20px;
-    text-align: center;
-    justify-content: center !important;
-  }
-  #globalDialog .dialog-header > span {
-    flex: 1;
-    text-align: center;
-  }
-  #globalDialog .dialog-body {
-    font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-weight: 400;
-    color: #fff;
-    font-size: 1em;
-    text-align: center;
-  }
-  #closeGlobalDialog {
-    color: #fff;
-    font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  }
-`;
-document.head.appendChild(dialogStyle);
-
-// Sign-on dialog styles
-const signOnStyle = document.createElement("style");
-signOnStyle.textContent = `
-  dialog#signOnDialog {
-    background: #3b0a70;
-    color: #fff;
-    border: none;
-    border-radius: 20px;
-    font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    box-shadow: 0 4px 32px rgba(0,0,0,0.2);
-    width: 400px;
-    max-width: 90vw;
-    padding: 0;
-    overflow: hidden;
-    text-align: center;
-  }
-  dialog#signOnDialog::backdrop {
-    background: rgba(0,0,0,0.5);
-  }
-  #signOnDialog .dialog-header {
-    font-weight: 700;
-    font-size: 1.3em;
-    color: #fff;
-    background: rgba(0,0,0,0.08);
-    border-top-left-radius: 20px;
-    border-top-right-radius: 20px;
-    padding: 1.2em 1em 0.5em 1em;
-  }
-  #signOnDialog .dialog-body {
-    font-weight: 400;
-    color: #fff;
-    font-size: 1em;
-    padding: 1.2em 1.5em 1.5em 1.5em;
-  }
-  #signOnDialog input {
-    width: 100%;
-    max-width: 300px;
-    margin: 0.5em 0 1em 0;
-    padding: 0.7em 1em;
-    border-radius: 8px;
-    border: none;
-    font-size: 1.1em;
-    font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  }
-  #signOnDialog button[type="submit"] {
-    width: 100%;
-    max-width: 300px;
-    padding: 0.7em 0;
-    font-size: 1.1em;
-    border-radius: 8px;
-    background: #00ffcc;
-    color: #3b0a70;
-    font-weight: 700;
-    border: none;
-    cursor: pointer;
-    margin-top: 0.5em;
-  }
-  #signOnDialog .error-message {
-    color: #ffb3b3;
-    margin-bottom: 0.5em;
-    font-size: 1em;
-    min-height: 1.5em;
-  }
-`;
-document.head.appendChild(signOnStyle);
-
-// Create sign-on dialog
-const signOnDialog = document.createElement("dialog");
-signOnDialog.id = "signOnDialog";
-signOnDialog.innerHTML = `
-  <div class="dialog-header">Teacher Sign On</div>
-  <div class="dialog-body">
-    <form id="signOnForm" autocomplete="off">
-      <div class="error-message" id="signOnError"></div>
-      <input type="text" id="signOnUsername" placeholder="Username" required />
-      <input type="password" id="signOnPin" placeholder="PIN" required />
-      <button type="submit">Sign In</button>
-    </form>
-  </div>
-`;
-document.documentElement.appendChild(signOnDialog);
-
-// Show sign-on dialog by default
-window.addEventListener("DOMContentLoaded", function () {
-  if (!signOnDialog.open) signOnDialog.showModal();
-});
+// Get sign-on dialog from the DOM
+const signOnDialog = document.getElementById("signOnDialog");
+const messagesDialog = document.getElementById("messagesDialog");
+// This will be the new central data store for all message threads
+window.messageThreads = new Map();
 
 // Helper to hash PIN using SHA-256
 async function hashPin(pin) {
@@ -147,91 +14,355 @@ async function hashPin(pin) {
     .join("");
 }
 
-// Handle sign-on form submit
-signOnDialog
-  .querySelector("#signOnForm")
-  .addEventListener("submit", async function (e) {
-    e.preventDefault();
-    const username = signOnDialog.querySelector("#signOnUsername").value.trim();
-    const pin = signOnDialog.querySelector("#signOnPin").value.trim();
-    const errorDiv = signOnDialog.querySelector("#signOnError");
-    errorDiv.textContent = "";
-    if (!username || !pin) {
-      errorDiv.textContent = "Please enter both username and PIN.";
-      return;
+// New function to centralize all message sending
+function sendMessage(senderId, recipientId, messageContent) {
+  // MODIFIED: Added return threadId
+  if (!senderId || !recipientId || !messageContent) {
+    console.error("sendMessage failed: Missing sender, recipient, or message.");
+    return;
+  }
+
+  const payload = {
+    senderId,
+    recipientId,
+    messageContent,
+  };
+  socket.emit("sendMessage", payload);
+
+  // --- OPTIMISTIC UPDATE ---
+  // Determine the threadId for the frontend's internal Map.
+  // recipientId here is the *actual* recipient (student name or class-message-teachername)
+  const isClassMsg = recipientId.startsWith("class-message-");
+  let threadId;
+
+  if (isClassMsg) {
+    threadId = `class-message-${window.activeTeacherName}`; // Consistent with backend
+  } else {
+    const sortedParticipants = [senderId, recipientId].sort(); // This correctly forms the canonical threadId
+    threadId = sortedParticipants.join("_");
+    // Note: recipientId in payload is the student's name, not the combined threadId
+  }
+
+  if (!window.messageThreads.has(threadId)) {
+    console.log(`Optimistically creating new thread for ${threadId}`);
+    window.messageThreads.set(threadId, {
+      threadId: threadId,
+      type: isClassMsg ? "class" : "private",
+      // For new private threads, participants should be the sorted pair
+      participants: isClassMsg
+        ? [senderId, "class-message-recipient"]
+        : sortedParticipants,
+      messages: [], // Actual messages will be pushed by 'newMessage' handler
+      lastMessageTimestamp: new Date().toISOString(), // Use lastMessageTimestamp for consistency
+      hasUnread: false,
+    });
+  }
+  return threadId; // MODIFIED: Return the calculated threadId
+}
+
+// Fetches all messages for the teacher and processes them into threads.
+// This is called once after login.
+async function initializeMessaging(teacherUsername) {
+  // Note: The `teacherUsername` parameter is now the teacher's full name.
+  // The server endpoint /messages/:userId is generic and will work with the name.
+  console.log("Inside initializeMessaging for:", teacherUsername);
+  const classThreadId = `class-message-${teacherUsername}`;
+
+  try {
+    // 1. Fetch all messages from the new unified endpoint
+    console.log(
+      "Attempting to fetch messages from:",
+      `https://trinitycapitaltestserver-2.azurewebsites.net/messages/${teacherUsername}`
+    );
+    const response = await fetch(
+      `https://trinitycapitaltestserver-2.azurewebsites.net/messages/${teacherUsername}`
+    );
+
+    if (!response.ok) {
+      console.error(
+        `Fetch response not OK. Status: ${response.status}, StatusText: ${response.statusText}`
+      );
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-    console.log("Sign-in button pressed with username:", username);
-    try {
-      const hashedPin = await hashPin(pin);
-      console.log("Calling /findTeacher API with:", {
-        parcel: [username, hashedPin],
-      });
-      const response = await fetch("https://trinitycapitaltestserver-2.azurewebsites.net/findTeacher", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ parcel: [username, hashedPin] }),
-      });
-      let teacherName = username;
-      if (response.ok) {
-        // Try to get teacher name from response if available
-        try {
-          const data = await response.json();
-          if (data && data.name) {
-            teacherName = data.name;
-          }
-        } catch (e) {}
-        signOnDialog.close();
-        window.activeTeacherUsername = username;
-        // Show dashboard and navbar
-        document
-          .querySelector(".dashboard")
-          .classList.remove("hidden-until-login");
-        document
-          .querySelector(".navbar")
-          .classList.remove("hidden-until-login");
-        // Update navbar teacher name
-        const navbarText = document.querySelector(".navbar-text");
-        if (navbarText) navbarText.textContent = teacherName;
-        // Load students
-        loadTeacherStudents(username);
-      } else {
-        errorDiv.textContent = "Invalid username or PIN.";
-      }
-    } catch (err) {
-      errorDiv.textContent = "Server error. Please try again.";
+
+    console.log("Fetch response OK. Parsing JSON...");
+    let { threads } = await response.json();
+    console.log("All threads fetched from DB for this teacher:", threads); // Log threads here
+    if (!threads || !Array.isArray(threads)) {
+      console.log("No threads found for teacher or invalid format.");
+      threads = []; // Ensure it's an array to prevent errors
     }
+
+    // Store the processed threads globally as a Map for easier lookup by threadId
+    // Convert array of thread objects to a Map for easier lookup by threadId
+    window.messageThreads = new Map(threads.map((t) => [t.threadId, t]));
+
+    // Ensure the class thread always exists.
+    if (!window.messageThreads.has(classThreadId)) {
+      window.messageThreads.set(classThreadId, {
+        threadId: classThreadId,
+        type: "class",
+        participants: [teacherUsername, "class-message-recipient"],
+        messages: [],
+        lastMessageTimestamp: new Date(0).toISOString(), // Puts it at the bottom if no messages
+      });
+    }
+
+    console.log("Messaging initialized with threads:", window.messageThreads);
+  } catch (error) {
+    console.error("Failed to initialize messaging:", error);
+    console.error("Error details:", error.message, error.stack);
+    // On failure, ensure at least the class thread exists to avoid a blank panel
+    const fallbackThreads = new Map();
+    fallbackThreads.set(classThreadId, {
+      threadId: classThreadId,
+      type: "class",
+      participants: [teacherUsername, "class-message-recipient"],
+      messages: [
+        {
+          messageContent: "Error loading messages.",
+          timestamp: new Date().toISOString(),
+          senderId: "System",
+        },
+      ],
+      lastMessageTimestamp: new Date().toISOString(),
+    });
+    window.messageThreads = fallbackThreads;
+    console.log(
+      "Messaging initialized with fallback threads:",
+      window.messageThreads
+    );
+  }
+}
+
+// Renders the threads panel UI from the global `window.messageThreads` data
+function renderThreadsPanel(options = {}) {
+  const { autoSelectFirst = true } = options;
+
+  const threadsPanel = messagesDialog.querySelector(".threads-panel");
+  if (!threadsPanel) return;
+
+  // Before clearing, find out which thread is currently active
+  const previouslyActiveThread = threadsPanel.querySelector(
+    ".thread-item.active-thread"
+  );
+  const activeThreadId = previouslyActiveThread?.dataset.threadId;
+
+  threadsPanel.innerHTML = ""; // Clear existing content
+
+  const allThreads = Array.from(window.messageThreads.values());
+  const classThreadId = `class-message-${window.activeTeacherName}`;
+
+  // Separate the class thread from the others
+  const classThread = allThreads.find((t) => t.threadId === classThreadId);
+  const otherThreads = allThreads.filter((t) => t.threadId !== classThreadId);
+
+  // Sort the other threads by the last message timestamp
+  otherThreads.sort(
+    (a, b) =>
+      new Date(b.lastMessageTimestamp) - new Date(a.lastMessageTimestamp)
+  );
+
+  // Combine them back, with class thread at the top
+  const threads = classThread ? [classThread, ...otherThreads] : otherThreads;
+
+  threads.forEach((thread) => {
+    const threadItem = document.createElement("div");
+    threadItem.className = "thread-item";
+    threadItem.dataset.threadId = thread.threadId;
+    // If this thread was the one that was active, re-apply the class
+    if (thread.threadId === activeThreadId) {
+      threadItem.classList.add("active-thread");
+    }
+
+    if (thread.hasUnread) {
+      // hasUnread is a frontend-only flag
+      threadItem.classList.add("has-unread");
+    }
+
+    // Derive displayName and lastMessage for preview
+    const isClassMessage = thread.type === "class"; // Use thread.type
+    let displayName;
+    if (isClassMessage) {
+      displayName = "Class Message";
+    } else {
+      // Find the participant who is not the current teacher to display their name
+      const otherParticipant = thread.participants?.find(
+        (p) => p !== window.activeTeacherName
+      );
+      displayName = otherParticipant || thread.threadId; // Fallback to threadId
+    }
+    const lastMessageObj =
+      thread.messages.length > 0
+        ? thread.messages[thread.messages.length - 1]
+        : null;
+    const lastMessageContent = lastMessageObj
+      ? lastMessageObj.messageContent
+      : "No messages yet.";
+    const displayTime =
+      thread.lastMessageTimestamp === "1970-01-01T00:00:00.000Z" ||
+      !thread.lastMessageTimestamp
+        ? ""
+        : new Date(thread.lastMessageTimestamp).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+    threadItem.innerHTML = `
+          <div class="thread-info">
+            <span class="thread-name">${displayName}</span>
+            <span class="thread-preview">${lastMessageContent}</span>
+          </div>
+          <span class="thread-timestamp">${displayTime}</span>
+        `;
+    threadsPanel.appendChild(threadItem);
   });
 
-// Add event listeners to all buttons
+  // Automatically select and display the first (most recent) thread
+  if (autoSelectFirst) {
+    const firstThread = threadsPanel.querySelector(".thread-item");
+    if (firstThread) {
+      firstThread.click();
+    }
+  }
+}
 
 document.addEventListener("DOMContentLoaded", function () {
-  // Create dialog outside the body
-  const dialog = document.createElement("dialog");
-  dialog.id = "globalDialog";
-  dialog.style.width = "60vw";
-  dialog.style.height = "80vh";
-  dialog.innerHTML = `
-    <div class="dialog-header" style="display:flex;justify-content:space-between;align-items:center;padding:1em 1.2em 0 1.2em;">
-      <span id="dialogTitle">Dialog</span>
-      <button id="closeGlobalDialog" style="background:transparent;border:none;font-size:1.2em;cursor:pointer;">&times;</button>
-    </div>
-    <div class="dialog-body" style="padding:1.2em;">
-      <p id="dialogContent">This is a reusable dialog.</p>
-    </div>
-  `;
-  document.documentElement.appendChild(dialog);
+  // Show sign-on dialog by default
+  if (!signOnDialog.open) {
+    signOnDialog.showModal();
+  }
+
+  const dialog = document.getElementById("globalDialog");
+
+  signOnDialog
+    .querySelector("#signOnForm")
+    .addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const username = signOnDialog
+        .querySelector("#signOnUsername")
+        .value.trim();
+      const pin = signOnDialog.querySelector("#signOnPin").value.trim();
+      const errorDiv = signOnDialog.querySelector("#signOnError");
+      errorDiv.textContent = "";
+      if (!username || !pin) {
+        errorDiv.textContent = "Please enter both username and PIN.";
+        return;
+      }
+      try {
+        const hashedPin = await hashPin(pin);
+        const response = await fetch("https://trinitycapitaltestserver-2.azurewebsites.net/findTeacher", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ parcel: [username, hashedPin] }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const teacherName = data.teacherName || username;
+
+          window.activeTeacherUsername = username;
+          window.activeTeacherName = teacherName;
+
+          socket.emit("identify", teacherName);
+          signOnDialog.close();
+
+          document
+            .querySelector(".dashboard")
+            ?.classList.remove("hidden-until-login");
+          document
+            .querySelector(".navbar")
+            ?.classList.remove("hidden-until-login");
+
+          const navbarText = document.querySelector(".navbar-text");
+          if (navbarText) navbarText.textContent = teacherName;
+
+          loadTeacherStudents(username);
+          initializeMessaging(teacherName);
+        } else {
+          errorDiv.textContent = "Invalid username or PIN.";
+        }
+      } catch (err) {
+        console.error("Sign-on failed:", err);
+        errorDiv.textContent = "Server error. Please try again.";
+      }
+    });
+
+  dialog.close();
 
   // Open dialog function
-  window.openGlobalDialog = function (title, content) {
-    document.getElementById("dialogTitle").textContent = title || "Dialog";
-    document.getElementById("dialogContent").textContent =
-      content || "This is a reusable dialog.";
+  window.openGlobalDialog = function (title, content, options = {}) {
+    // Make sure sign-on dialog is closed first
+    if (signOnDialog.open) {
+      signOnDialog.close();
+    }
+
+    const dialogTitle = document.getElementById("dialogTitle");
+    const dialogContent = document.getElementById("dialogContent");
+
+    dialogTitle.textContent = title || "Dialog";
+
+    // Handle message sending dialogs via a callback
+    if (options.onSend && typeof options.onSend === "function") {
+      dialogContent.innerHTML = `
+        <div style="display:flex; flex-direction:column; height: 100%; text-align:left; gap: 1em;">
+          <p>${
+            content ||
+            `Sending message to: <strong>${
+              options.recipient || "recipient"
+            }</strong>`
+          }</p>
+          <textarea id="globalDialogTextarea" style="width: 100%; flex-grow: 1; resize: none; padding: 0.5em; border-radius: 8px; border: none; background: rgba(255,255,255,0.1); color: #fff; font-family: inherit; font-size: 1em;" placeholder="Type your message..."></textarea>
+          <button id="globalDialogSendBtn" class="btn" style="background: #00ffcc; color: #3b0a70; font-weight: 700;">Send Message</button>
+        </div>
+      `;
+
+      const sendBtn = document.getElementById("globalDialogSendBtn");
+      const textarea = document.getElementById("globalDialogTextarea");
+
+      const sendAction = () => {
+        const messageText = textarea.value.trim();
+        if (messageText) {
+          options.onSend(messageText);
+          window.closeGlobalDialog();
+        }
+      };
+
+      const keydownHandler = (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          sendAction();
+        }
+      };
+
+      // Add listeners
+      sendBtn.addEventListener("click", sendAction);
+      textarea.addEventListener("keydown", keydownHandler);
+
+      // IMPORTANT: Clean up listeners when the dialog closes to prevent memory leaks
+      dialog.addEventListener(
+        "close",
+        () => {
+          sendBtn.removeEventListener("click", sendAction);
+          textarea.removeEventListener("keydown", keydownHandler);
+        },
+        { once: true }
+      );
+    } else {
+      // Default behavior for simple informational dialogs
+      dialogContent.innerHTML = `<p>${
+        content || "This is a reusable dialog."
+      }</p>`;
+    }
+
     if (!dialog.open) dialog.showModal();
   };
+
   // Close dialog function
   window.closeGlobalDialog = function () {
+    window.allowGlobalDialogOpen = false; // Reset flag
     if (dialog.open) dialog.close();
   };
+
   // Close button event
   dialog
     .querySelector("#closeGlobalDialog")
@@ -239,56 +370,68 @@ document.addEventListener("DOMContentLoaded", function () {
       window.closeGlobalDialog();
     });
 
-  // Sidebar buttons
-  const createLessonBtn = document.querySelector(
-    ".sidebar-action:nth-of-type(1)"
-  );
-  const sendClassMsgBtn = document.querySelector(
-    ".sidebar-action:nth-of-type(2)"
-  );
-  const emailParentsBtn = document.querySelector(
-    ".sidebar-action:nth-of-type(3)"
-  );
-  const accessWhirlpoolBtn = document.querySelector(
-    ".sidebar-action:nth-of-type(4)"
-  );
-
-  if (createLessonBtn) {
-    createLessonBtn.addEventListener("click", function () {
+  // Sidebar buttons - REFACTORED to use IDs
+  document
+    .getElementById("createLessonBtn")
+    ?.addEventListener("click", function () {
       window.openGlobalDialog(
         "Create Lesson",
         "This is the Create Lesson dialog."
       );
       console.log("Create Lesson button clicked");
     });
-  }
-  if (sendClassMsgBtn) {
-    sendClassMsgBtn.addEventListener("click", function () {
+
+  document
+    .getElementById("sendClassMessageBtn")
+    ?.addEventListener("click", function () {
       window.openGlobalDialog(
         "Send Class Message",
-        "This is the Send Class Message dialog."
+        "Enter the message to send to the entire class:",
+        {
+          recipient: "Entire Class",
+          onSend: (messageText) => {
+            // MODIFIED: Handle closing globalDialog and opening messagesDialog
+            // Use the special 'class-message-NAME' recipient to trigger a class-wide message
+            const sentThreadId = sendMessage(
+              window.activeTeacherName,
+              `class-message-${window.activeTeacherName}`,
+              messageText
+            );
+            window.closeGlobalDialog(); // Close the current dialog
+            messagesDialog.showModal(); // Open the messages dialog
+            renderThreadsPanel({ autoSelectFirst: false }); // Render threads, but don't auto-select the first one
+            // Find and click the specific thread item
+            const threadItem = messagesDialog.querySelector(
+              `[data-thread-id="${CSS.escape(sentThreadId)}"]`
+            );
+            if (threadItem) {
+              threadItem.click();
+            }
+          },
+        }
       );
       console.log("Send Class Message button clicked");
     });
-  }
-  if (emailParentsBtn) {
-    emailParentsBtn.addEventListener("click", function () {
+
+  document
+    .getElementById("emailParentsBtn")
+    ?.addEventListener("click", function () {
       window.openGlobalDialog(
         "Email Parents/Staff",
         "This is the Email Parents/Staff dialog."
       );
       console.log("Email Parents/Staff button clicked");
     });
-  }
-  if (accessWhirlpoolBtn) {
-    accessWhirlpoolBtn.addEventListener("click", function () {
+
+  document
+    .getElementById("accessWhirlpoolBtn")
+    ?.addEventListener("click", function () {
       window.openGlobalDialog(
         "Access Whirlpool",
         "This is the Access Whirlpool dialog."
       );
       console.log("Access Whirlpool button clicked");
     });
-  }
 
   // Register Students button
   const registerStudentsBtn = document.getElementById("registerStudentsBtn");
@@ -396,17 +539,159 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Student message buttons
-  const messageBtns = document.querySelectorAll(".message-btn");
-  messageBtns.forEach((btn, idx) => {
-    btn.addEventListener("click", function () {
-      const student = btn.parentElement.querySelector("h5")?.textContent || "";
-      window.openGlobalDialog(
-        "Message Student",
-        `Message button ${idx + 1} clicked: ${student}`
-      );
-      console.log(`Message button ${idx + 1} clicked: ${student}`);
+  // Student message buttons - use event delegation since they're added dynamically
+  document.addEventListener("click", function (e) {
+    if (e.target && e.target.classList.contains("message-btn")) {
+      const student =
+        e.target.closest(".student-card").querySelector("h5")?.textContent ||
+        "";
+      if (student) {
+        window.openGlobalDialog(
+          `Message Student: ${student}`,
+          `Enter your message for <strong>${student}</strong>:`,
+          {
+            recipient: student,
+            onSend: (messageText) => {
+              // MODIFIED: Handle closing globalDialog and opening messagesDialog
+              // The 'student' variable here is the student's full name
+              const sentThreadId = sendMessage(
+                window.activeTeacherName,
+                student,
+                messageText
+              );
+              window.closeGlobalDialog(); // Close the current dialog
+              messagesDialog.showModal(); // Open the messages dialog
+              renderThreadsPanel({ autoSelectFirst: false }); // Render threads, but don't auto-select the first one
+              // Find and click the specific thread item
+              const threadItem = messagesDialog.querySelector(
+                `[data-thread-id="${CSS.escape(sentThreadId)}"]`
+              );
+              if (threadItem) {
+                threadItem.click();
+              }
+            },
+          }
+        );
+        console.log(`Message button clicked for: ${student}`);
+      }
+    }
+  });
+
+  // Messages button
+  document
+    .getElementById("messagesBtn")
+    ?.addEventListener("click", function () {
+      if (signOnDialog.open) signOnDialog.close();
+      const globalDialog = document.getElementById("globalDialog");
+      if (globalDialog.open) globalDialog.close();
+
+      // Open the messages dialog
+      if (!messagesDialog.open) {
+        messagesDialog.showModal();
+        renderThreadsPanel(); // Render threads from memory when dialog is opened
+      }
+      console.log("Messages button clicked");
     });
+
+  // --- NEW LOGIC FOR MESSAGES DIALOG ---
+  const threadsPanel = messagesDialog.querySelector(".threads-panel");
+  const messagesBody = messagesDialog.querySelector(".messages-list");
+  const messageInput = messagesDialog.querySelector("#messageInput");
+  const sendMessageBtn = messagesDialog.querySelector("#sendMessageBtn");
+
+  // Function to handle sending a message from the main dialog
+  const sendMessageFromDialog = () => {
+    const message = messageInput.value.trim();
+    const activeThread = threadsPanel.querySelector(
+      ".thread-item.active-thread"
+    );
+
+    if (message && activeThread) {
+      const recipient = activeThread.dataset.threadId;
+      let actualRecipientForServer;
+
+      if (recipient.startsWith("class-message-")) {
+        actualRecipientForServer = recipient; // For class messages, the threadId is the recipientId
+      } else {
+        // For private messages, the threadId is "StudentName_TeacherName"
+        // We need to extract the student's name as the actual recipient for the server
+        const participants = recipient.split("_");
+        actualRecipientForServer = participants.find(
+          (p) => p !== window.activeTeacherName
+        );
+      }
+      sendMessage(window.activeTeacherName, actualRecipientForServer, message);
+      messageInput.value = ""; // Clear input after sending
+      messageInput.focus();
+    }
+  };
+
+  // Event listeners for sending messages from the main dialog
+  sendMessageBtn.addEventListener("click", sendMessageFromDialog);
+  messageInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault(); // Prevent new line on Enter
+      sendMessageFromDialog();
+    }
+  });
+
+  // Handle switching between threads
+  threadsPanel.addEventListener("click", (e) => {
+    // This is the event listener for clicking on a thread in the left panel
+    const threadItem = e.target.closest(".thread-item");
+    if (threadItem) {
+      const currentTeacher = window.activeTeacherName;
+      if (!messagesBody || !currentTeacher) return;
+
+      // Remove active class from all threads
+      threadsPanel
+        .querySelectorAll(".thread-item")
+        .forEach((item) => item.classList.remove("active-thread"));
+      // Add active class to the clicked thread
+      threadItem.classList.add("active-thread");
+      // When a thread is clicked, it's considered "read"
+      threadItem.classList.remove("has-unread");
+      const threadId = threadItem.dataset.threadId;
+      if (window.messageThreads.has(threadId)) {
+        window.messageThreads.get(threadId).hasUnread = false;
+      }
+
+      console.log(`Switched to thread: ${threadId}`);
+
+      // Clear previous messages
+      messagesBody.innerHTML = ""; // Clear the messages display area
+
+      // Render messages from the stored data, not from a new fetch
+      const threadData = window.messageThreads.get(threadId);
+      if (threadData && threadData.messages) {
+        threadData.messages.forEach((msg) => {
+          const wrapperElement = document.createElement("div");
+          wrapperElement.classList.add("message-wrapper");
+          wrapperElement.classList.add(
+            msg.senderId === currentTeacher ? "sent" : "received"
+          );
+
+          const senderTag = // This is for displaying the sender's name in class messages
+            msg.isClassMessage && msg.senderId !== currentTeacher
+              ? `<strong class="message-sender-name">${msg.senderId}</strong>`
+              : "";
+          const timestamp = new Date(msg.timestamp).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          wrapperElement.innerHTML = `
+            <div class="message-item">
+              ${senderTag}
+              <p class="message-content">${msg.messageContent}</p>
+            </div>
+            <span class="message-timestamp">${timestamp}</span>
+          `;
+          messagesBody.appendChild(wrapperElement);
+        });
+
+        messagesBody.scrollTop = messagesBody.scrollHeight; // Scroll to bottom
+      }
+    }
   });
 });
 
@@ -483,3 +768,110 @@ socket.on("studentAdded", (student) => {
     periodGrid.appendChild(card);
   }
 });
+
+// Listen for new messages and update the messages dialog
+socket.on("newMessage", (message) => {
+  const { senderId, recipientId, messageContent, timestamp, isClassMessage } =
+    message; // The incoming message object from the server
+  const currentTeacher = window.activeTeacherName;
+  const messagesBody = messagesDialog.querySelector(".messages-list"); // Corrected selector
+  const threadsPanel = messagesDialog.querySelector(".threads-panel"); // Left panel with thread list
+
+  if (!messagesBody || !threadsPanel || !window.messageThreads) return;
+
+  console.log("Received new message:", message);
+
+  // Determine the thread ID for the incoming message
+  let threadId;
+  if (isClassMessage) {
+    threadId = `class-message-${currentTeacher}`; // Consistent threadId for class messages
+  } else {
+    const sortedParticipants = [senderId, recipientId].sort();
+    threadId = sortedParticipants.join("_");
+  }
+
+  // If the message is from the teacher to themselves (e.g., class message),
+  // ensure the threadId is correctly identified as their class message thread.
+  if (isClassMessage && senderId === currentTeacher) {
+    // This is the teacher's own class message being echoed back
+    // The threadId should already be correct from the above logic.
+  }
+
+  // --- UPDATE THE CENTRAL DATA STORE ---
+  // Find or create the thread in our data map
+  if (!window.messageThreads.has(threadId)) {
+    // This can happen if the message is the very first message in a new thread
+    // that wasn't initiated by the current user (e.g., a student messages the teacher first).
+    console.log(
+      `newMessage received for new threadId: ${threadId}. Creating it.`
+    );
+    window.messageThreads.set(threadId, {
+      threadId: threadId,
+      type: isClassMessage ? "class" : "private",
+      participants: isClassMessage
+        ? [senderId, "class-message-recipient"]
+        : [senderId, recipientId], // Add participants
+      messages: [],
+      lastMessageTimestamp: timestamp, // Set initial timestamp
+    });
+  }
+  const threadData = window.messageThreads.get(threadId);
+
+  // Add the new message and update the preview info
+  threadData.messages.push(message);
+  threadData.lastMessageTimestamp = timestamp; // Update the timestamp
+
+  // --- UPDATE THE UI ---
+  // Re-render the threads panel to update previews and sorting
+  // We set autoSelectFirst to false to prevent it from re-triggering a click event,
+  // which would cause the message to be rendered twice.
+  renderThreadsPanel({ autoSelectFirst: false });
+
+  // Check if the messages dialog is open and if this message belongs to the currently active thread
+  const activeThreadElement = threadsPanel.querySelector(
+    ".thread-item.active-thread"
+  );
+  const isActiveThreadMessage =
+    activeThreadElement && activeThreadElement.dataset.threadId === threadId;
+  if (messagesDialog.open) {
+    // If the new message belongs to the currently active thread, append it
+    if (isActiveThreadMessage) {
+      const wrapperElement = document.createElement("div");
+      wrapperElement.classList.add("message-wrapper");
+      wrapperElement.classList.add(
+        senderId === currentTeacher ? "sent" : "received"
+      );
+
+      const senderTag =
+        isClassMessage && senderId !== currentTeacher
+          ? `<strong class="message-sender-name">${senderId}</strong>`
+          : "";
+      const formattedTimestamp = new Date(timestamp).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      wrapperElement.innerHTML = `
+        <div class="message-item">
+          ${senderTag}
+          <p class="message-content">${messageContent}</p>
+        </div>
+        <span class="message-timestamp">${formattedTimestamp}</span>
+      `;
+      messagesBody.appendChild(wrapperElement);
+      messagesBody.scrollTop = messagesBody.scrollHeight;
+    }
+  } else {
+    // If the dialog is closed, mark the thread as unread so it shows a notification
+    threadData.hasUnread = true;
+  }
+});
+
+// Close button for messages dialog
+const closeMessagesDialogBtn = document.getElementById("closeMessagesDialog");
+if (closeMessagesDialogBtn) {
+  closeMessagesDialogBtn.addEventListener("click", function () {
+    if (messagesDialog.open) {
+      messagesDialog.close();
+    }
+  });
+}
