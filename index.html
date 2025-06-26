@@ -26,10 +26,19 @@
         <button class="btn sidebar-action" id="registerStudentsBtn">
           Register Students
         </button>
-        <button class="btn sidebar-action">Create Lesson</button>
-        <button class="btn sidebar-action">Send Class Message</button>
-        <button class="btn sidebar-action">Email Parents/Staff</button>
-        <button class="btn sidebar-action">Access Whirlpool</button>
+        <button class="btn sidebar-action" id="createLessonBtn">
+          Create Lesson
+        </button>
+        <button class="btn sidebar-action" id="sendClassMessageBtn">
+          Send Class Message
+        </button>
+        <button class="btn sidebar-action" id="emailParentsBtn">
+          Email Parents/Staff
+        </button>
+        <button class="btn sidebar-action" id="accessWhirlpoolBtn">
+          Access Whirlpool
+        </button>
+        <button class="btn sidebar-action" id="messagesBtn">Messages</button>
       </div>
 
       <div class="students-container">
@@ -61,6 +70,69 @@
         </div>
       </div>
     </div>
+
+    <!-- Sign-On Dialog -->
+    <dialog id="signOnDialog">
+      <div class="dialog-header">Teacher Sign On</div>
+      <div class="dialog-body">
+        <form id="signOnForm" autocomplete="off">
+          <div class="error-message" id="signOnError"></div>
+          <input
+            type="text"
+            id="signOnUsername"
+            placeholder="Username"
+            required
+          />
+          <input type="password" id="signOnPin" placeholder="PIN" required />
+          <button type="submit">Sign In</button>
+        </form>
+      </div>
+    </dialog>
+
+    <!-- Global Reusable Dialog -->
+    <dialog id="globalDialog">
+      <div class="dialog-header">
+        <span id="dialogTitle">Dialog</span>
+        <button id="closeGlobalDialog">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <p id="dialogContent">This is a reusable dialog.</p>
+      </div>
+    </dialog>
+
+    <!-- Messages Dialog -->
+    <dialog id="messagesDialog">
+      <div class="dialog-header">
+        <span id="messagesDialogTitle">Messages</span>
+        <button id="closeMessagesDialog">&times;</button>
+      </div>
+      <div class="dialog-body messages-dialog-body">
+        <div class="threads-panel">
+          <div class="thread-item active-thread" data-thread-id="class-message">
+            <span class="thread-name">Class Message</span>
+            <span class="thread-preview">Welcome to the dashboard!</span>
+          </div>
+          <div class="thread-item" data-thread-id="Emily Johnson">
+            <span class="thread-name">Emily Johnson</span>
+            <span class="thread-preview">Can I ask a question?</span>
+          </div>
+          <!-- More threads can be added here dynamically -->
+        </div>
+        <div class="messages-panel">
+          <div class="messages-list">
+            <!-- Messages will be loaded here -->
+          </div>
+          <div class="message-input-area">
+            <input
+              type="text"
+              id="messageInput"
+              placeholder="Type a message..."
+            />
+            <button id="sendMessageBtn">Send</button>
+          </div>
+        </div>
+      </div>
+    </dialog>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="script.js" type="module"></script>
   </body>
