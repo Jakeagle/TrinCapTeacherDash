@@ -278,6 +278,35 @@ document.addEventListener("DOMContentLoaded", function () {
 
           loadTeacherStudents(username);
           initializeMessaging(teacherName);
+
+          // --- FETCH EMAIL SETTINGS AND POPULATE ---
+          fetch(`https://trinitycapitaltestserver-2.azurewebsites.net/emailSettings/${username}`)
+            .then((r) => r.json())
+            .then((settings) => {
+              window.addressBook = Array.isArray(settings.addresses)
+                ? settings.addresses
+                : [];
+              window.emailTemplates = Array.isArray(settings.templates)
+                ? settings.templates
+                : [];
+              window.emailGroups = Array.isArray(settings.groups)
+                ? settings.groups
+                : [];
+              renderAddressBook();
+              renderEmailTemplates();
+              renderGroups();
+            })
+            .catch((err) => {
+              window.addressBook = [];
+              window.emailTemplates = [];
+              window.emailGroups = [];
+              renderAddressBook();
+              renderEmailTemplates();
+              renderGroups();
+            });
+
+          // --- CHECK AND PROMPT SMTP CONFIG ---
+          checkAndPromptSmtpConfig();
         } else {
           errorDiv.textContent = "Invalid username or PIN.";
         }
@@ -413,13 +442,11 @@ document.addEventListener("DOMContentLoaded", function () {
       console.log("Send Class Message button clicked");
     });
 
+  // FIX: Use openEmailDialog for Email Parents/Staff
   document
     .getElementById("emailParentsBtn")
     ?.addEventListener("click", function () {
-      window.openGlobalDialog(
-        "Email Parents/Staff",
-        "This is the Email Parents/Staff dialog."
-      );
+      openEmailDialog();
       console.log("Email Parents/Staff button clicked");
     });
 
@@ -740,7 +767,7 @@ async function loadTeacherStudents(teacherUsername) {
 }
 
 // Listen for new students being added live via socket.io
-const socket = io("https://trinitycapitaltestserver-2.azurewebsites.net", {
+const socket = io("http://localhost:3000", {
   withCredentials: true,
 });
 
@@ -874,4 +901,372 @@ if (closeMessagesDialogBtn) {
       messagesDialog.close();
     }
   });
+}
+
+// --- EMAIL PARENTS/STAFF FEATURE ---
+// Email dialog state
+window.emailTemplates = [];
+window.savedEmails = [];
+
+function openEmailDialog() {
+  // Build dialog HTML
+  const dialog = document.getElementById("globalDialog");
+  const dialogTitle = document.getElementById("dialogTitle");
+  const dialogContent = document.getElementById("dialogContent");
+  dialogTitle.textContent = "Email Parents/Staff";
+  dialogContent.innerHTML = `
+    <form id="emailForm" style="display:flex;flex-direction:column;gap:1.5em;">
+      <div style="display:flex;gap:1.5em;flex-wrap:wrap;">
+        <div style="flex:2;min-width:260px;background:rgba(255,255,255,0.08);padding:1em 1.2em 1.2em 1.2em;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+          <h5 style="margin:0 0 0.7em 0;color:#00ffcc;font-weight:700;">Compose Email</h5>
+          <div style="margin-bottom:0.7em;">
+            <label style="font-weight:600;">To:</label>
+            <input type="text" id="emailRecipients" placeholder="Type or select from address book or group" style="padding:0.5em;border-radius:6px;border:none;width:100%;margin-top:0.3em;" />
+            <select id="groupSelect" style="margin-top:0.5em;width:100%;padding:0.4em;border-radius:6px;border:none;">
+              <option value="">-- Select Group (optional) --</option>
+            </select>
+          </div>
+          <input type="text" id="emailSubject" placeholder="Subject" style="padding:0.5em;border-radius:6px;border:none;margin-bottom:0.7em;width:100%;" />
+          <textarea id="emailMessage" placeholder="Message" style="min-height:100px;padding:0.5em;border-radius:6px;border:none;width:100%;margin-bottom:1em;"></textarea>
+          <div style="display:flex;gap:0.7em;justify-content:flex-end;">
+            <button type="button" id="sendEmailBtn" class="btn btn-primary" style="background:#00ffcc;color:#3b0a70;font-weight:700;">Send</button>
+          </div>
+        </div>
+        <div style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:1.2em;">
+          <div style="background:rgba(255,255,255,0.06);padding:1em 1em 1.2em 1em;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+            <h6 style="margin:0 0 0.5em 0;color:#00ffcc;font-weight:700;">Address Book</h6>
+            <input type="text" id="addressInput" placeholder="Add email address" style="padding:0.4em;border-radius:6px;border:none;width:100%;margin-bottom:0.5em;" />
+            <button type="button" id="saveAddressBtn" class="btn btn-sm" style="background:#00ffcc;color:#3b0a70;font-weight:700;width:100%;margin-bottom:0.7em;">Save Address</button>
+            <div id="addressBookList" style="max-height:80px;overflow:auto;"></div>
+          </div>
+          <div style="background:rgba(255,255,255,0.06);padding:1em 1em 1.2em 1em;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+            <h6 style="margin:0 0 0.5em 0;color:#00ffcc;font-weight:700;">Templates</h6>
+            <div style="display:flex;gap:0.5em;align-items:center;">
+              <select id="templateSelect" style="flex:1;padding:0.5em;border-radius:6px;border:none;"></select>
+              <button type="button" id="applyTemplateBtn" class="btn btn-sm" style="background:#00ffcc;color:#3b0a70;font-weight:700;min-width:110px;">Apply</button>
+            </div>
+            <input type="text" id="templateSubject" placeholder="Template Subject" style="margin-top:0.5em;padding:0.4em;border-radius:6px;border:none;width:100%;" />
+            <textarea id="templateMessage" placeholder="Template Message" style="margin-top:0.5em;min-height:40px;padding:0.4em;border-radius:6px;border:none;width:100%;"></textarea>
+            <button type="button" id="saveTemplateBtn" class="btn btn-sm" style="background:#9575cd;color:#fff;font-weight:700;width:100%;margin-top:0.5em;">Save as Template</button>
+          </div>
+          <div style="background:rgba(255,255,255,0.06);padding:1em 1em 1.2em 1em;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+            <h6 style="margin:0 0 0.5em 0;color:#00ffcc;font-weight:700;">Groups</h6>
+            <input type="text" id="groupNameInput" placeholder="Group Name" style="padding:0.4em;border-radius:6px;border:none;width:100%;margin-bottom:0.5em;" />
+            <div id="groupAddressSelect" style="margin-bottom:0.5em;"></div>
+            <button type="button" id="saveGroupBtn" class="btn btn-sm" style="background:#00ffcc;color:#3b0a70;font-weight:700;width:100%;">Create Group</button>
+            <div id="groupList" style="max-height:60px;overflow:auto;margin-top:0.5em;"></div>
+          </div>
+        </div>
+      </div>
+    </form>
+  `;
+  if (!dialog.open) dialog.showModal();
+  renderAddressBook();
+  renderEmailTemplates();
+  renderGroups();
+  // Event handlers
+  document.getElementById("sendEmailBtn").onclick = sendEmail;
+  document.getElementById("saveAddressBtn").onclick = saveAddress;
+  document.getElementById("applyTemplateBtn").onclick = applyTemplate;
+  document.getElementById("saveTemplateBtn").onclick = saveTemplate;
+  document.getElementById("saveGroupBtn").onclick = saveGroup;
+  document.getElementById("groupSelect").onchange = handleGroupSelect;
+}
+
+// Add this style block to the top of the file or inject into the DOM on page load
+(function addEmailModalStyles() {
+  const style = document.createElement("style");
+  style.innerHTML = `
+    #templateSelect {
+      max-width: 70%;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    #templateSelect option {
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: block;
+    }
+    #applyTemplateBtn {
+      white-space: nowrap;
+    }
+    /* Responsive fix for flex container */
+    #templateSelect, #applyTemplateBtn {
+      flex-shrink: 1;
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+// --- Address Book Logic ---
+window.addressBook = [];
+function renderAddressBook() {
+  const list = document.getElementById("addressBookList");
+  if (!list) return;
+  list.innerHTML = window.addressBook
+    .map(
+      (addr, i) =>
+        `<div style='display:flex;align-items:center;gap:0.5em;'><span>${addr}</span><button type='button' style='background:none;border:none;color:#ffb3b3;cursor:pointer;font-size:1.1em;' onclick='window.removeAddress(${i})' title='Remove'>&times;</button></div>`
+    )
+    .join("");
+  renderGroupAddressSelect();
+}
+window.removeAddress = function (idx) {
+  window.addressBook.splice(idx, 1);
+  renderAddressBook();
+  renderGroups();
+};
+function saveAddress() {
+  const input = document.getElementById("addressInput");
+  const val = input.value.trim();
+  if (!val || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val))
+    return alert("Enter a valid email address.");
+  if (!window.addressBook.includes(val)) {
+    window.addressBook.push(val);
+    renderAddressBook();
+    // Send to server
+    fetch("https://trinitycapitaltestserver-2.azurewebsites.net/saveEmailAddress", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sender: window.activeTeacherUsername || "Unknown",
+        address: val,
+      }),
+    });
+  }
+  input.value = "";
+}
+
+// --- Template Logic ---
+window.emailTemplates = [];
+function renderEmailTemplates() {
+  const select = document.getElementById("templateSelect");
+  if (!select) return;
+  select.innerHTML = window.emailTemplates
+    .map((t, i) => `<option value='${i}'>${t.subject}</option>`)
+    .join("");
+}
+function applyTemplate() {
+  const idx = document.getElementById("templateSelect").value;
+  if (window.emailTemplates[idx]) {
+    document.getElementById("emailSubject").value =
+      window.emailTemplates[idx].subject;
+    document.getElementById("emailMessage").value =
+      window.emailTemplates[idx].message;
+  }
+}
+function saveTemplate() {
+  const subject = document.getElementById("templateSubject").value.trim();
+  const message = document.getElementById("templateMessage").value.trim();
+  if (!subject || !message) return alert("Subject and message required.");
+  window.emailTemplates.push({ subject, message });
+  renderEmailTemplates();
+  document.getElementById("templateSubject").value = "";
+  document.getElementById("templateMessage").value = "";
+  // Send to server
+  fetch("https://trinitycapitaltestserver-2.azurewebsites.net/saveEmailTemplate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sender: window.activeTeacherUsername || "Unknown",
+      subject,
+      message,
+    }),
+  });
+}
+
+// --- Group Logic ---
+window.emailGroups = [];
+function renderGroups() {
+  const groupList = document.getElementById("groupList");
+  const groupSelect = document.getElementById("groupSelect");
+  if (groupList) {
+    groupList.innerHTML = window.emailGroups
+      .map(
+        (g, i) =>
+          `<div style='display:flex;align-items:center;gap:0.5em;'><span>${g.name} (${g.addresses.length})</span><button type='button' style='background:none;border:none;color:#ffb3b3;cursor:pointer;font-size:1.1em;' onclick='window.removeGroup(${i})' title='Remove'>&times;</button></div>`
+      )
+      .join("");
+  }
+  if (groupSelect) {
+    groupSelect.innerHTML =
+      `<option value=''>-- Select Group (optional) --</option>` +
+      window.emailGroups
+        .map((g, i) => `<option value='${i}'>${g.name}</option>`)
+        .join("");
+  }
+}
+window.removeGroup = function (idx) {
+  window.emailGroups.splice(idx, 1);
+  renderGroups();
+};
+function renderGroupAddressSelect() {
+  const container = document.getElementById("groupAddressSelect");
+  if (!container) return;
+  container.innerHTML = window.addressBook.length
+    ? window.addressBook
+        .map(
+          (addr, i) =>
+            `<label style='display:block;'><input type='checkbox' value='${addr}' /> ${addr}</label>`
+        )
+        .join("")
+    : `<span style='color:#ccc;'>No addresses in address book.</span>`;
+}
+function saveGroup() {
+  const name = document.getElementById("groupNameInput").value.trim();
+  const checked = Array.from(
+    document.querySelectorAll(
+      "#groupAddressSelect input[type=checkbox]:checked"
+    )
+  );
+  if (!name || !checked.length)
+    return alert("Enter group name and select at least one address.");
+  const addresses = checked.map((cb) => cb.value);
+  window.emailGroups.push({ name, addresses });
+  renderGroups();
+  document.getElementById("groupNameInput").value = "";
+  renderGroupAddressSelect();
+  // Send to server
+  fetch("https://trinitycapitaltestserver-2.azurewebsites.net/saveEmailGroup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sender: window.activeTeacherUsername || "Unknown",
+      name,
+      addresses,
+    }),
+  });
+}
+function handleGroupSelect(e) {
+  const idx = e.target.value;
+  if (window.emailGroups[idx]) {
+    document.getElementById("emailRecipients").value =
+      window.emailGroups[idx].addresses.join(", ");
+  }
+}
+
+// --- Compose Email Logic ---
+function sendEmail() {
+  const recipients = document.getElementById("emailRecipients").value.trim();
+  const subject = document.getElementById("emailSubject").value.trim();
+  const message = document.getElementById("emailMessage").value.trim();
+  if (!recipients) return alert("Please enter at least one recipient.");
+  // Send to backend for logging and possible delivery
+  fetch("https://trinitycapitaltestserver-2.azurewebsites.net/sendEmail", {
+    // Changed from 5000 to 3000
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      sender: window.activeTeacherUsername || "Unknown",
+      recipients,
+      subject,
+      message,
+    }),
+  })
+    .then((response) => {
+      if (response.ok) {
+        alert(`Email sent to: ${recipients}\nSubject: ${subject}`);
+      } else {
+        console.error("Failed to send email:", response.status);
+        alert(
+          `Failed to send email. Please try again. (Status: ${response.status})`
+        );
+      }
+    })
+    .catch((error) => {
+      console.error("Error sending email:", error);
+      alert("Error sending email. Please check your network and try again.");
+    });
+}
+
+// --- SMTP CONFIG MODAL ---
+function showSmtpConfigModal() {
+  // Remove any existing modal
+  let oldModal = document.getElementById("smtpConfigModal");
+  if (oldModal) oldModal.remove();
+  const modal = document.createElement("dialog");
+  modal.id = "smtpConfigModal";
+  modal.innerHTML = `
+    <form id="smtpConfigForm" style="display:flex;flex-direction:column;gap:1em;min-width:320px;">
+      <h3>Set Up Your School Email</h3>
+      <label>SMTP Host <input type="text" name="smtpHost" required placeholder="smtp.gmail.com" /></label>
+      <label>SMTP Port <input type="number" name="smtpPort" required placeholder="465" min="1" max="65535" /></label>
+      <label>Email Address <input type="email" name="emailAddress" required placeholder="your@school.org" /></label>
+      <label>SMTP Username <input type="text" name="smtpUsername" required placeholder="your@school.org" /></label>
+      <label>SMTP Password <input type="password" name="smtpPassword" required autocomplete="new-password" /></label>
+      <label style="display:flex;align-items:center;gap:0.5em;">
+        <input type="checkbox" name="useOauth2" id="useOauth2Checkbox" /> Use OAuth2 (Google/Outlook)
+      </label>
+      <div id="oauth2Info" style="display:none;font-size:0.95em;color:#888;">OAuth2 setup will be handled after saving these details.</div>
+      <button type="submit" class="btn btn-primary" style="margin-top:1em;">Save Email Settings</button>
+    </form>
+  `;
+  document.body.appendChild(modal);
+  modal.showModal();
+
+  // Toggle OAuth2 info
+  modal
+    .querySelector("#useOauth2Checkbox")
+    .addEventListener("change", function () {
+      modal.querySelector("#oauth2Info").style.display = this.checked
+        ? "block"
+        : "none";
+    });
+
+  // Handle form submit
+  modal.querySelector("#smtpConfigForm").onsubmit = async function (e) {
+    e.preventDefault();
+    const form = e.target;
+    const data = {
+      smtpHost: form.smtpHost.value.trim(),
+      smtpPort: parseInt(form.smtpPort.value, 10),
+      emailAddress: form.emailAddress.value.trim(),
+      smtpUsername: form.smtpUsername.value.trim(),
+      smtpPassword: form.smtpPassword.value,
+      useOauth2: form.useOauth2.checked,
+    };
+    // Save to backend
+    try {
+      const resp = await fetch("https://trinitycapitaltestserver-2.azurewebsites.net/saveSmtpConfig", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teacherUsername: window.activeTeacherUsername,
+          config: data,
+        }),
+      });
+      if (resp.ok) {
+        alert("Email settings saved!");
+        modal.close();
+      } else {
+        alert("Failed to save email settings.");
+      }
+    } catch (err) {
+      alert("Error saving email settings.");
+    }
+  };
+}
+
+// After successful sign-in, check if SMTP config exists and show modal if not
+async function checkAndPromptSmtpConfig() {
+  try {
+    const resp = await fetch(
+      `https://trinitycapitaltestserver-2.azurewebsites.net/getSmtpConfig/${window.activeTeacherUsername}`
+    );
+    if (resp.ok) {
+      const data = await resp.json();
+      if (!data || !data.smtpHost) {
+        showSmtpConfigModal();
+      }
+    }
+  } catch (err) {
+    // On error, still show modal to allow setup
+    showSmtpConfigModal();
+  }
 }
