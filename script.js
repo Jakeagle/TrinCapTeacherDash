@@ -72,10 +72,10 @@ async function initializeMessaging(teacherUsername) {
     // 1. Fetch all messages from the new unified endpoint
     console.log(
       "Attempting to fetch messages from:",
-      `https://trinitycapitaltestserver-2.azurewebsites.net/messages/${teacherUsername}`
+      `https://tcstudentserver-production.up.railway.app/messages/${teacherUsername}`
     );
     const response = await fetch(
-      `https://trinitycapitaltestserver-2.azurewebsites.net/messages/${teacherUsername}`
+      `https://tcstudentserver-production.up.railway.app/messages/${teacherUsername}`
     );
 
     if (!response.ok) {
@@ -251,7 +251,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
       try {
         const hashedPin = await hashPin(pin);
-        const response = await fetch("https://trinitycapitaltestserver-2.azurewebsites.net/findTeacher", {
+        const response = await fetch("https://tcstudentserver-production.up.railway.app/findTeacher", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ parcel: [username, hashedPin] }),
@@ -280,7 +280,7 @@ document.addEventListener("DOMContentLoaded", function () {
           initializeMessaging(teacherName);
 
           // --- FETCH EMAIL SETTINGS AND POPULATE ---
-          fetch(`https://trinitycapitaltestserver-2.azurewebsites.net/emailSettings/${username}`)
+          fetch(`https://tcstudentserver-production.up.railway.app/emailSettings/${username}`)
             .then((r) => r.json())
             .then((settings) => {
               window.addressBook = Array.isArray(settings.addresses)
@@ -542,7 +542,7 @@ document.addEventListener("DOMContentLoaded", function () {
             };
             console.log("Sending to /generateClassCodes:", payload);
             const response = await fetch(
-              "https://trinitycapitaltestserver-2.azurewebsites.net/generateClassCodes",
+              "https://tcstudentserver-production.up.railway.app/generateClassCodes",
               {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -725,7 +725,7 @@ document.addEventListener("DOMContentLoaded", function () {
 // Fetch and display students by class period after login
 async function loadTeacherStudents(teacherUsername) {
   try {
-    const response = await fetch("https://trinitycapitaltestserver-2.azurewebsites.net/teacherDashboard", {
+    const response = await fetch("https://tcstudentserver-production.up.railway.app/teacherDashboard", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ teacherUsername }),
@@ -1031,7 +1031,7 @@ function saveAddress() {
     window.addressBook.push(val);
     renderAddressBook();
     // Send to server
-    fetch("https://trinitycapitaltestserver-2.azurewebsites.net/saveEmailAddress", {
+    fetch("https://tcstudentserver-production.up.railway.app/saveEmailAddress", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1070,7 +1070,7 @@ function saveTemplate() {
   document.getElementById("templateSubject").value = "";
   document.getElementById("templateMessage").value = "";
   // Send to server
-  fetch("https://trinitycapitaltestserver-2.azurewebsites.net/saveEmailTemplate", {
+  fetch("https://tcstudentserver-production.up.railway.app/saveEmailTemplate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -1133,7 +1133,7 @@ function saveGroup() {
   document.getElementById("groupNameInput").value = "";
   renderGroupAddressSelect();
   // Send to server
-  fetch("https://trinitycapitaltestserver-2.azurewebsites.net/saveEmailGroup", {
+  fetch("https://tcstudentserver-production.up.railway.app/saveEmailGroup", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -1158,7 +1158,7 @@ function sendEmail() {
   const message = document.getElementById("emailMessage").value.trim();
   if (!recipients) return alert("Please enter at least one recipient.");
   // Send to backend for logging and possible delivery
-  fetch("https://trinitycapitaltestserver-2.azurewebsites.net/sendEmail", {
+  fetch("https://tcstudentserver-production.up.railway.app/sendEmail", {
     // Changed from 5000 to 3000
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1233,7 +1233,7 @@ function showSmtpConfigModal() {
     };
     // Save to backend
     try {
-      const resp = await fetch("https://trinitycapitaltestserver-2.azurewebsites.net/saveSmtpConfig", {
+      const resp = await fetch("https://tcstudentserver-production.up.railway.app/saveSmtpConfig", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1257,7 +1257,7 @@ function showSmtpConfigModal() {
 async function checkAndPromptSmtpConfig() {
   try {
     const resp = await fetch(
-      `https://trinitycapitaltestserver-2.azurewebsites.net/getSmtpConfig/${window.activeTeacherUsername}`
+      `https://tcstudentserver-production.up.railway.app/getSmtpConfig/${window.activeTeacherUsername}`
     );
     if (resp.ok) {
       const data = await resp.json();
