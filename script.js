@@ -767,7 +767,7 @@ async function loadTeacherStudents(teacherUsername) {
 }
 
 // Listen for new students being added live via socket.io
-const socket = io("http://localhost:3000", {
+const socket = io("https://tcstudentserver-production.up.railway.app", {
   withCredentials: true,
 });
 
