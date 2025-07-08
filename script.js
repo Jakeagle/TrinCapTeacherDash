@@ -251,11 +251,14 @@ document.addEventListener("DOMContentLoaded", function () {
       }
       try {
         const hashedPin = await hashPin(pin);
-        const response = await fetch("https://tcstudentserver-production.up.railway.app/findTeacher", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ parcel: [username, hashedPin] }),
-        });
+        const response = await fetch(
+          "https://tcstudentserver-production.up.railway.app/findTeacher",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ parcel: [username, hashedPin] }),
+          }
+        );
         if (response.ok) {
           const data = await response.json();
           const teacherName = data.teacherName || username;
@@ -280,7 +283,9 @@ document.addEventListener("DOMContentLoaded", function () {
           initializeMessaging(teacherName);
 
           // --- FETCH EMAIL SETTINGS AND POPULATE ---
-          fetch(`https://tcstudentserver-production.up.railway.app/emailSettings/${username}`)
+          fetch(
+            `https://tcstudentserver-production.up.railway.app/emailSettings/${username}`
+          )
             .then((r) => r.json())
             .then((settings) => {
               window.addressBook = Array.isArray(settings.addresses)
@@ -304,9 +309,6 @@ document.addEventListener("DOMContentLoaded", function () {
               renderEmailTemplates();
               renderGroups();
             });
-
-          // --- CHECK AND PROMPT SMTP CONFIG ---
-          checkAndPromptSmtpConfig();
         } else {
           errorDiv.textContent = "Invalid username or PIN.";
         }
@@ -725,11 +727,14 @@ document.addEventListener("DOMContentLoaded", function () {
 // Fetch and display students by class period after login
 async function loadTeacherStudents(teacherUsername) {
   try {
-    const response = await fetch("https://tcstudentserver-production.up.railway.app/teacherDashboard", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ teacherUsername }),
-    });
+    const response = await fetch(
+      "https://tcstudentserver-production.up.railway.app/teacherDashboard",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teacherUsername }),
+      }
+    );
     const data = await response.json();
     if (response.ok && Array.isArray(data.students)) {
       // Clear all students from each period
@@ -1031,14 +1036,17 @@ function saveAddress() {
     window.addressBook.push(val);
     renderAddressBook();
     // Send to server
-    fetch("https://tcstudentserver-production.up.railway.app/saveEmailAddress", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sender: window.activeTeacherUsername || "Unknown",
-        address: val,
-      }),
-    });
+    fetch(
+      "https://tcstudentserver-production.up.railway.app/saveEmailAddress",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sender: window.activeTeacherUsername || "Unknown",
+          address: val,
+        }),
+      }
+    );
   }
   input.value = "";
 }
@@ -1183,90 +1191,4 @@ function sendEmail() {
       console.error("Error sending email:", error);
       alert("Error sending email. Please check your network and try again.");
     });
-}
-
-// --- SMTP CONFIG MODAL ---
-function showSmtpConfigModal() {
-  // Remove any existing modal
-  let oldModal = document.getElementById("smtpConfigModal");
-  if (oldModal) oldModal.remove();
-  const modal = document.createElement("dialog");
-  modal.id = "smtpConfigModal";
-  modal.innerHTML = `
-    <form id="smtpConfigForm" style="display:flex;flex-direction:column;gap:1em;min-width:320px;">
-      <h3>Set Up Your School Email</h3>
-      <label>SMTP Host <input type="text" name="smtpHost" required placeholder="smtp.gmail.com" /></label>
-      <label>SMTP Port <input type="number" name="smtpPort" required placeholder="465" min="1" max="65535" /></label>
-      <label>Email Address <input type="email" name="emailAddress" required placeholder="your@school.org" /></label>
-      <label>SMTP Username <input type="text" name="smtpUsername" required placeholder="your@school.org" /></label>
-      <label>SMTP Password <input type="password" name="smtpPassword" required autocomplete="new-password" /></label>
-      <label style="display:flex;align-items:center;gap:0.5em;">
-        <input type="checkbox" name="useOauth2" id="useOauth2Checkbox" /> Use OAuth2 (Google/Outlook)
-      </label>
-      <div id="oauth2Info" style="display:none;font-size:0.95em;color:#888;">OAuth2 setup will be handled after saving these details.</div>
-      <button type="submit" class="btn btn-primary" style="margin-top:1em;">Save Email Settings</button>
-    </form>
-  `;
-  document.body.appendChild(modal);
-  modal.showModal();
-
-  // Toggle OAuth2 info
-  modal
-    .querySelector("#useOauth2Checkbox")
-    .addEventListener("change", function () {
-      modal.querySelector("#oauth2Info").style.display = this.checked
-        ? "block"
-        : "none";
-    });
-
-  // Handle form submit
-  modal.querySelector("#smtpConfigForm").onsubmit = async function (e) {
-    e.preventDefault();
-    const form = e.target;
-    const data = {
-      smtpHost: form.smtpHost.value.trim(),
-      smtpPort: parseInt(form.smtpPort.value, 10),
-      emailAddress: form.emailAddress.value.trim(),
-      smtpUsername: form.smtpUsername.value.trim(),
-      smtpPassword: form.smtpPassword.value,
-      useOauth2: form.useOauth2.checked,
-    };
-    // Save to backend
-    try {
-      const resp = await fetch("https://tcstudentserver-production.up.railway.app/saveSmtpConfig", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          teacherUsername: window.activeTeacherUsername,
-          config: data,
-        }),
-      });
-      if (resp.ok) {
-        alert("Email settings saved!");
-        modal.close();
-      } else {
-        alert("Failed to save email settings.");
-      }
-    } catch (err) {
-      alert("Error saving email settings.");
-    }
-  };
-}
-
-// After successful sign-in, check if SMTP config exists and show modal if not
-async function checkAndPromptSmtpConfig() {
-  try {
-    const resp = await fetch(
-      `https://tcstudentserver-production.up.railway.app/getSmtpConfig/${window.activeTeacherUsername}`
-    );
-    if (resp.ok) {
-      const data = await resp.json();
-      if (!data || !data.smtpHost) {
-        showSmtpConfigModal();
-      }
-    }
-  } catch (err) {
-    // On error, still show modal to allow setup
-    showSmtpConfigModal();
-  }
 }
