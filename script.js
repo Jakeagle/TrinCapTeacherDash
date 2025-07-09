@@ -3,6 +3,7 @@ const signOnDialog = document.getElementById("signOnDialog");
 const messagesDialog = document.getElementById("messagesDialog");
 // This will be the new central data store for all message threads
 window.messageThreads = new Map();
+const API_BASE_URL = "https://tcstudentserver-production.up.railway.app";
 
 // Helper to hash PIN using SHA-256
 async function hashPin(pin) {
@@ -72,11 +73,9 @@ async function initializeMessaging(teacherUsername) {
     // 1. Fetch all messages from the new unified endpoint
     console.log(
       "Attempting to fetch messages from:",
-      `https://tcstudentserver-production.up.railway.app/messages/${teacherUsername}`
+      `${API_BASE_URL}/messages/${teacherUsername}`
     );
-    const response = await fetch(
-      `https://tcstudentserver-production.up.railway.app/messages/${teacherUsername}`
-    );
+    const response = await fetch(`${API_BASE_URL}/messages/${teacherUsername}`);
 
     if (!response.ok) {
       console.error(
@@ -251,14 +250,11 @@ document.addEventListener("DOMContentLoaded", function () {
       }
       try {
         const hashedPin = await hashPin(pin);
-        const response = await fetch(
-          "https://tcstudentserver-production.up.railway.app/findTeacher",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ parcel: [username, hashedPin] }),
-          }
-        );
+        const response = await fetch(`${API_BASE_URL}/findTeacher`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ parcel: [username, hashedPin] }),
+        });
         if (response.ok) {
           const data = await response.json();
           const teacherName = data.teacherName || username;
@@ -281,11 +277,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
           loadTeacherStudents(username);
           initializeMessaging(teacherName);
+          loadTeacherLessons(teacherName);
 
           // --- FETCH EMAIL SETTINGS AND POPULATE ---
-          fetch(
-            `https://tcstudentserver-production.up.railway.app/emailSettings/${username}`
-          )
+          fetch(`${API_BASE_URL}/emailSettings/${username}`)
             .then((r) => r.json())
             .then((settings) => {
               window.addressBook = Array.isArray(settings.addresses)
@@ -405,11 +400,484 @@ document.addEventListener("DOMContentLoaded", function () {
   document
     .getElementById("createLessonBtn")
     ?.addEventListener("click", function () {
-      window.openGlobalDialog(
-        "Create Lesson",
-        "This is the Create Lesson dialog."
+      // --- HTML Structure for the Lesson Builder ---
+      const content = `
+      <div class="lesson-modal-layout">
+        <div class="lesson-modal-container">
+          <form id="createLessonForm" class="lesson-form-main">
+            <div class="form-group">
+              <label for="lessonTitle">Lesson Title</label>
+              <input type="text" id="lessonTitle" class="dialog-input" placeholder="e.g., Introduction to Budgeting" required />
+            </div>
+
+            <!-- Introductory Content Blocks Section -->
+            <div class="lesson-builder-section">
+              <h6 class="dialog-section-title">Introductory Content</h6>
+              <div id="introBlocksContainer"></div>
+              <div class="block-controls">
+                <button type="button" id="addHeaderBtn" class="btn btn-modal-action">+ Header</button>
+                <button type="button" id="addTextBtn" class="btn btn-modal-action">+ Text</button>
+                <button type="button" id="addVideoBtn" class="btn btn-modal-action">+ Video</button>
+              </div>
+            </div>
+
+            <!-- Conditional Actions Section -->
+            <div class="lesson-builder-section">
+              <h6 class="dialog-section-title">Conditional Actions</h6>
+              <div id="conditionsContainer"></div>
+              <div class="block-controls">
+                <button type="button" id="addConditionBtn" class="btn btn-modal-action">+ Add Condition</button>
+              </div>
+            </div>
+          </form>
+
+          <div class="lesson-actions-panel">
+            <h5 class="dialog-section-title">Lesson Settings</h5>
+             <div class="form-group">
+              <label for="unitSelector">Assign to Unit</label>
+              <select id="unitSelector" class="dialog-input">
+                <option value="">-- No Unit Selected --</option>
+                <!-- Options will be populated dynamically -->
+              </select>
+            </div>
+            <button type="button" id="createUnitBtn" class="btn btn-modal-action" style="width: 100%;">+ Create New Unit</button>
+            
+            <!-- Form for creating a unit, hidden by default -->
+            <div id="createUnitContainer" style="display: none; margin-top: 1em; background: rgba(0,0,0,0.2); padding: 1em; border-radius: 8px;">
+              <h6 class="dialog-section-title" style="color: #fff; margin-top: 0;">New Unit Details</h6>
+              <div class="form-group">
+                <label for="newUnitNumber">Unit Number</label>
+                <input type="number" id="newUnitNumber" class="dialog-input" placeholder="e.g., 2" min="1" required />
+              </div>
+              <div class="form-group">
+                <label for="newUnitName">Unit Name</label>
+                <input type="text" id="newUnitName" class="dialog-input" placeholder="e.g., Advanced Saving" required />
+              </div>
+              <div class="block-controls" style="justify-content: flex-end;">
+                <button type="button" id="cancelNewUnitBtn" class="btn btn-modal-action btn-secondary">Cancel</button>
+                <button type="button" id="saveNewUnitBtn" class="btn btn-modal-action">Save Unit</button>
+              </div>
+            </div>
+
+            <button type="button" id="assignToClassBtn" class="btn btn-modal-action">Assign to Class</button>
+          </div>
+        </div>
+        <div class="lesson-modal-footer">
+            <button type="button" id="uploadToWhirlpoolBtn" class="btn btn-modal-action">Upload to Whirlpool</button>
+            <button type="submit" form="createLessonForm" id="saveLessonBtn" class="btn">Save Lesson</button>
+        </div>
+      </div>
+    `;
+
+      window.openGlobalDialog("Create Lesson", "");
+      const dialogContent = document.getElementById("dialogContent");
+      dialogContent.innerHTML = content;
+
+      populateUnitSelector();
+
+      const introBlocksContainer = document.getElementById(
+        "introBlocksContainer"
       );
-      console.log("Create Lesson button clicked");
+      const conditionsContainer = document.getElementById(
+        "conditionsContainer"
+      );
+
+      // --- Block & Condition Creation Functions ---
+      const createBlock = (type) => {
+        const block = document.createElement("div");
+        block.className = "content-block";
+        block.dataset.blockType = type;
+        let innerHTML = `<button type="button" class="remove-btn">&times;</button>`;
+        switch (type) {
+          case "header":
+            innerHTML += `<label>Header</label><input type="text" class="dialog-input" placeholder="Enter header text...">`;
+            break;
+          case "text":
+            innerHTML += `<label>Text Block</label><textarea class="dialog-textarea" placeholder="Enter paragraph text..."></textarea>`;
+            break;
+          case "video":
+            // Changed input type to "text" to allow for iframe code. Added a preview container.
+            innerHTML += `<label>Video URL or YouTube Embed</label><input type="text" class="dialog-input video-url-input" placeholder="e.g., https://www.youtube.com/watch?v=... or .mp4 URL">
+            <div class="video-preview-container" style="margin-top: 0.5em; display: none;"></div>`;
+            break;
+        }
+        block.innerHTML = innerHTML;
+        introBlocksContainer.appendChild(block);
+      };
+
+      const createCondition = () => {
+        const condition = document.createElement("div");
+        condition.className = "condition-block";
+        condition.innerHTML = `
+          <button type="button" class="remove-btn">&times;</button>
+          <div class="form-group">
+            <label>If</label>
+            <select class="dialog-input condition-type">
+              <option value="bank_balance_above">Bank Balance Is Above</option>
+              <option value="elapsed_time">Time in Lesson (Seconds)</option>
+              <option value="quiz_score_below">Quiz Score Is Below</option>
+            </select>
+            <input type="number" class="dialog-input condition-value" placeholder="Value" style="max-width: 100px;">
+          </div>
+          <div class="form-group">
+            <label>Then</label>
+            <select class="dialog-input action-type">
+              <option value="send_message">Send Message</option>
+              <option value="add_text_block">Add Text Block</option>
+              <option value="restart_student">Restart Student</option>
+            </select>
+          </div>
+          <div class="action-details"></div>
+        `;
+        conditionsContainer.appendChild(condition);
+      };
+
+      const updateActionDetails = (actionSelect) => {
+        const detailsContainer = actionSelect
+          .closest(".condition-block")
+          .querySelector(".action-details");
+        const actionType = actionSelect.value;
+        let detailsHTML = "";
+        if (actionType === "send_message" || actionType === "add_text_block") {
+          detailsHTML = `<textarea class="dialog-textarea action-content" placeholder="Enter content for action..."></textarea>`;
+        }
+        detailsContainer.innerHTML = detailsHTML;
+      };
+
+      // --- Event Listeners ---
+      document
+        .getElementById("addHeaderBtn")
+        .addEventListener("click", () => createBlock("header"));
+      document
+        .getElementById("addTextBtn")
+        .addEventListener("click", () => createBlock("text"));
+      document
+        .getElementById("addVideoBtn")
+        .addEventListener("click", () => createBlock("video"));
+      document
+        .getElementById("addConditionBtn")
+        .addEventListener("click", createCondition);
+
+      dialogContent.addEventListener("click", (e) => {
+        if (e.target.classList.contains("remove-btn")) {
+          e.target.closest(".content-block, .condition-block").remove();
+        }
+      });
+
+      dialogContent.addEventListener("change", (e) => {
+        if (e.target.classList.contains("action-type")) {
+          updateActionDetails(e.target);
+        }
+      });
+
+      // Add live preview for video URLs
+      dialogContent.addEventListener("input", (e) => {
+        if (e.target.classList.contains("video-url-input")) {
+          const input = e.target;
+          const previewContainer = input.nextElementSibling;
+          const url = input.value.trim();
+          const embedUrl = getYoutubeEmbedUrl(url);
+
+          if (embedUrl) {
+            previewContainer.style.display = "block";
+            if (embedUrl.includes("youtube.com/embed")) {
+              previewContainer.innerHTML = `<iframe width="100%" height="150" src="${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius: 8px;"></iframe>`;
+            } else {
+              previewContainer.innerHTML = `<video width="100%" height="150" controls src="${embedUrl}" style="border-radius: 8px;"></video>`;
+            }
+          } else {
+            previewContainer.style.display = "none";
+            previewContainer.innerHTML = "";
+          }
+        }
+      });
+
+      // --- Save/Submit Handler ---
+      document
+        .getElementById("createLessonForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const unitSelector = document.getElementById("unitSelector");
+          const selectedUnitValue = unitSelector.value;
+
+          if (!selectedUnitValue) {
+            alert("Please select a unit before saving the lesson.");
+            return; // Prevent server call if no unit is selected
+          }
+
+          const selectedUnitName =
+            unitSelector.options[unitSelector.selectedIndex].text;
+
+          const lessonData = {
+            lesson_title: document.getElementById("lessonTitle").value,
+            intro_text_blocks: [],
+            conditions: [],
+          };
+
+          // Collect intro blocks
+          document
+            .querySelectorAll("#introBlocksContainer .content-block")
+            .forEach((block) => {
+              const type = block.dataset.blockType;
+              const input = block.querySelector("input, textarea");
+              const blockData = { type };
+              if (type === "video") {
+                // Use the helper function to get a clean embed URL
+                blockData.url = getYoutubeEmbedUrl(input.value);
+              } else {
+                blockData.content = input.value;
+              }
+              lessonData.intro_text_blocks.push(blockData);
+            });
+
+          // Collect conditions
+          document
+            .querySelectorAll("#conditionsContainer .condition-block")
+            .forEach((block) => {
+              const condition = {
+                condition_type: block.querySelector(".condition-type").value,
+                value: parseFloat(
+                  block.querySelector(".condition-value").value
+                ),
+                action: {
+                  type: block.querySelector(".action-type").value,
+                },
+              };
+              const actionContentEl = block.querySelector(".action-content");
+              if (actionContentEl) {
+                if (condition.action.type === "add_text_block") {
+                  condition.action.block = {
+                    type: "text",
+                    content: actionContentEl.value,
+                  };
+                } else {
+                  condition.action.content = actionContentEl.value;
+                }
+              }
+              lessonData.conditions.push(condition);
+            });
+
+          // Construct the final payload
+          const parcel = {
+            lesson: lessonData,
+            unit: {
+              value: selectedUnitValue,
+              name: selectedUnitName,
+            },
+            teacher: window.activeTeacherName,
+          };
+
+          try {
+            const response = await fetch(`https://tclessonserver-production.up.railway.app/save-lesson`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(parcel),
+            });
+
+            if (response.ok) {
+              const result = await response.json();
+              console.log("Lesson saved successfully:", result);
+              alert(
+                "Lesson saved successfully! The server has logged the data."
+              );
+              // window.closeGlobalDialog(); // You can uncomment this to close the dialog on save
+            } else {
+              console.error("Failed to save lesson:", response.statusText);
+              alert(`Error: Failed to save lesson. Status: ${response.status}`);
+            }
+          } catch (error) {
+            console.error("Error sending lesson data:", error);
+            alert(
+              "An error occurred while saving the lesson. Check the console."
+            );
+          }
+        });
+
+      // --- Placeholder Listeners for other buttons ---
+      const createUnitBtn = document.getElementById("createUnitBtn");
+      const createUnitContainer = document.getElementById(
+        "createUnitContainer"
+      );
+
+      createUnitBtn.addEventListener("click", () => {
+        createUnitContainer.style.display = "block";
+        createUnitBtn.style.display = "none";
+      });
+
+      document
+        .getElementById("cancelNewUnitBtn")
+        .addEventListener("click", () => {
+          createUnitContainer.style.display = "none";
+          createUnitBtn.style.display = "block";
+          document.getElementById("newUnitNumber").value = "";
+          document.getElementById("newUnitName").value = "";
+        });
+
+      document
+        .getElementById("saveNewUnitBtn")
+        .addEventListener("click", () => {
+          const unitNumberInput = document.getElementById("newUnitNumber");
+          const unitNameInput = document.getElementById("newUnitName");
+          const unitSelector = document.getElementById("unitSelector");
+
+          const unitNumber = unitNumberInput.value;
+          const unitName = unitNameInput.value.trim();
+
+          if (!unitNumber || !unitName) {
+            alert("Please provide both a unit number and a name.");
+            return;
+          }
+
+          const unitValue = `unit${unitNumber}`;
+          const unitText = `Unit ${unitNumber}: ${unitName}`;
+
+          // Check if unit already exists in the dropdown to avoid duplicates
+          const exists = Array.from(unitSelector.options).some(
+            (opt) => opt.value === unitValue
+          );
+
+          if (exists) {
+            alert("A unit with this number already exists.");
+            return;
+          }
+
+          // Add to the global teacherUnits array
+          if (!window.teacherUnits) {
+            window.teacherUnits = [];
+          }
+          // This is a temporary client-side addition. The server will create the
+          // unit permanently when a lesson is saved to it.
+          window.teacherUnits.push({
+            value: unitValue,
+            name: unitText,
+            lessons: [],
+          });
+
+          // Add to the dropdown and select it
+          const newOption = document.createElement("option");
+          newOption.value = unitValue;
+          newOption.textContent = unitText;
+          unitSelector.appendChild(newOption);
+          newOption.selected = true;
+
+          // Hide the form and reset
+          document.getElementById("cancelNewUnitBtn").click();
+        });
+
+      document
+        .getElementById("assignToClassBtn")
+        .addEventListener("click", () => {
+          alert("TODO: Show assign to class dialog.");
+        });
+      document
+        .getElementById("uploadToWhirlpoolBtn")
+        .addEventListener("click", async () => {
+          const unitSelector = document.getElementById("unitSelector");
+          const selectedUnitValue = unitSelector.value;
+
+          if (!selectedUnitValue) {
+            alert("Please select a unit before uploading the lesson.");
+            return;
+          }
+
+          const selectedUnitName =
+            unitSelector.options[unitSelector.selectedIndex].text;
+
+          const lessonData = {
+            lesson_title: document.getElementById("lessonTitle").value,
+            intro_text_blocks: [],
+            conditions: [],
+          };
+
+          // Collect intro blocks
+          document
+            .querySelectorAll("#introBlocksContainer .content-block")
+            .forEach((block) => {
+              const type = block.dataset.blockType;
+              const input = block.querySelector("input, textarea");
+              const blockData = { type };
+              if (type === "video") {
+                blockData.url = input.value;
+              } else {
+                blockData.content = input.value;
+              }
+              lessonData.intro_text_blocks.push(blockData);
+            });
+
+          // Collect conditions
+          document
+            .querySelectorAll("#conditionsContainer .condition-block")
+            .forEach((block) => {
+              const condition = {
+                condition_type: block.querySelector(".condition-type").value,
+                value: parseFloat(
+                  block.querySelector(".condition-value").value
+                ),
+                action: {
+                  type: block.querySelector(".action-type").value,
+                },
+              };
+              const actionContentEl = block.querySelector(".action-content");
+              if (actionContentEl) {
+                if (condition.action.type === "add_text_block") {
+                  condition.action.block = {
+                    type: "text",
+                    content: actionContentEl.value,
+                  };
+                } else {
+                  condition.action.content = actionContentEl.value;
+                }
+              }
+              lessonData.conditions.push(condition);
+            });
+
+          // Construct the final payload
+          const parcel = {
+            lesson: lessonData,
+            unit: {
+              value: selectedUnitValue,
+              name: selectedUnitName,
+            },
+            teacher: window.activeTeacherName,
+          };
+
+          try {
+            const response = await fetch(
+              `https://tclessonserver-production.up.railway.app/upload-whirlpool`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify(parcel),
+              }
+            );
+
+            if (response.ok) {
+              const result = await response.json();
+              console.log("Lesson sent to Whirlpool:", result);
+              alert(
+                "Lesson sent to Whirlpool! The server has logged the data."
+              );
+            } else {
+              console.error(
+                "Failed to upload to Whirlpool:",
+                response.statusText
+              );
+              alert(
+                `Error: Failed to upload to Whirlpool. Status: ${response.status}`
+              );
+            }
+          } catch (error) {
+            console.error("Error sending lesson data to Whirlpool:", error);
+            alert(
+              "An error occurred while uploading to Whirlpool. Check the console."
+            );
+          }
+        });
     });
 
   document
@@ -466,9 +934,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const registerStudentsBtn = document.getElementById("registerStudentsBtn");
   if (registerStudentsBtn) {
     registerStudentsBtn.addEventListener("click", function () {
-      // Dialog content for Register Students
+      // NEW: Dialog content for Register Students with improved layout
       const content = `
-        <form id="registerForm" style="display:flex;flex-direction:column;align-items:center;gap:2em;width:100%;height:100%;justify-content:flex-start;">
           <div style="width:100%;background:rgba(255,255,255,0.08);padding:1em 0.5em 0.5em 0.5em;border-radius:16px 16px 0 0;">
             <label style="font-weight:700;display:block;width:100%;text-align:left;">Teacher Email Address</label>
             <input type="email" id="teacherEmailInput" placeholder="Your email address" style="margin-top:0.5em;width:100%;max-width:350px;padding:0.5em 1em;border-radius:8px;border:none;font-size:1.1em;" required />
@@ -543,14 +1010,11 @@ document.addEventListener("DOMContentLoaded", function () {
               parcel: [window.activeTeacherUsername, teacherEmail, periods],
             };
             console.log("Sending to /generateClassCodes:", payload);
-            const response = await fetch(
-              "https://tcstudentserver-production.up.railway.app/generateClassCodes",
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-              }
-            );
+            const response = await fetch(`${API_BASE_URL}/generateClassCodes`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
             const data = await response.json();
             if (response.ok && data.codes) {
               resultDiv.innerHTML = `<div style='margin-top:1em;text-align:left;'><b>Class Codes:</b><ul style='margin:0.5em 0 0 1.2em;padding:0;'>${data.codes
@@ -727,14 +1191,11 @@ document.addEventListener("DOMContentLoaded", function () {
 // Fetch and display students by class period after login
 async function loadTeacherStudents(teacherUsername) {
   try {
-    const response = await fetch(
-      "https://tcstudentserver-production.up.railway.app/teacherDashboard",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teacherUsername }),
-      }
-    );
+    const response = await fetch(`${API_BASE_URL}/teacherDashboard`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ teacherUsername }),
+    });
     const data = await response.json();
     if (response.ok && Array.isArray(data.students)) {
       // Clear all students from each period
@@ -771,8 +1232,93 @@ async function loadTeacherStudents(teacherUsername) {
   }
 }
 
+// Fetch and display lessons for the teacher after login
+async function loadTeacherLessons(teacherName) {
+  try {
+    // The lesson server is on port 4000
+    const response = await fetch(
+      `https://tclessonserver-production.up.railway.app/lessons/${teacherName}`
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success) {
+        window.teacherUnits = data.units || [];
+        console.log("Teacher lessons loaded:", window.teacherUnits);
+        // TODO: Render lessons to the UI
+      } else {
+        console.error("Failed to load teacher lessons:", data.message);
+        window.teacherUnits = [];
+      }
+    } else {
+      console.error("Failed to load teacher lessons:", response.statusText);
+      window.teacherUnits = [];
+    }
+  } catch (error) {
+    console.error("Error fetching teacher lessons:", error);
+    window.teacherUnits = [];
+  }
+}
+
+// Parses a YouTube URL or iframe code and returns a standardized embed URL.
+// Returns the original input if it's not a recognized YouTube format.
+function getYoutubeEmbedUrl(input) {
+  if (!input) return null;
+
+  // Regex for standard YouTube watch URLs, short URLs, and embed URLs
+  const youtubeRegex =
+    /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+
+  // Regex for iframe embed code
+  const iframeRegex =
+    /<iframe[^>]+src="https:\/\/www\.youtube\.com\/embed\/([a-zA-Z0-9_-]{11})"/;
+
+  let match = input.match(youtubeRegex);
+  if (match && match[1]) {
+    return `https://www.youtube.com/embed/${match[1]}`;
+  }
+
+  match = input.match(iframeRegex);
+  if (match && match[1]) {
+    return `https://www.youtube.com/embed/${match[1]}`;
+  }
+
+  // Assume it's a direct video link (e.g., .mp4) if no YouTube match
+  return input;
+}
+
+// Populates the 'Assign to Unit' dropdown from the window.teacherUnits array
+function populateUnitSelector() {
+  const unitSelector = document.getElementById("unitSelector");
+  if (!unitSelector) {
+    console.error("unitSelector not found in the DOM");
+    return;
+  }
+
+  // Clear existing options (keeping the placeholder)
+  while (unitSelector.options.length > 1) {
+    unitSelector.remove(1);
+  }
+
+  // Populate from global teacherUnits, sorting them by unit number
+  if (window.teacherUnits && Array.isArray(window.teacherUnits)) {
+    // A simple sort based on the numeric part of the 'value' string
+    const sortedUnits = [...window.teacherUnits].sort((a, b) => {
+      const numA = parseInt(a.value.replace("unit", ""), 10);
+      const numB = parseInt(b.value.replace("unit", ""), 10);
+      return (isNaN(numA) ? 9999 : numA) - (isNaN(numB) ? 9999 : numB);
+    });
+
+    sortedUnits.forEach((unit) => {
+      const option = document.createElement("option");
+      option.value = unit.value; // e.g., "unit1"
+      option.textContent = unit.name; // e.g., "Unit 1: Banking"
+      unitSelector.appendChild(option);
+    });
+  }
+}
+
 // Listen for new students being added live via socket.io
-const socket = io("https://tcstudentserver-production.up.railway.app", {
+const socket = io(API_BASE_URL, {
   withCredentials: true,
 });
 
@@ -1036,17 +1582,14 @@ function saveAddress() {
     window.addressBook.push(val);
     renderAddressBook();
     // Send to server
-    fetch(
-      "https://tcstudentserver-production.up.railway.app/saveEmailAddress",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sender: window.activeTeacherUsername || "Unknown",
-          address: val,
-        }),
-      }
-    );
+    fetch(`${API_BASE_URL}/saveEmailAddress`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sender: window.activeTeacherUsername || "Unknown",
+        address: val,
+      }),
+    });
   }
   input.value = "";
 }
@@ -1078,7 +1621,7 @@ function saveTemplate() {
   document.getElementById("templateSubject").value = "";
   document.getElementById("templateMessage").value = "";
   // Send to server
-  fetch("https://tcstudentserver-production.up.railway.app/saveEmailTemplate", {
+  fetch(`${API_BASE_URL}/saveEmailTemplate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -1141,7 +1684,7 @@ function saveGroup() {
   document.getElementById("groupNameInput").value = "";
   renderGroupAddressSelect();
   // Send to server
-  fetch("https://tcstudentserver-production.up.railway.app/saveEmailGroup", {
+  fetch(`${API_BASE_URL}/saveEmailGroup`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -1166,7 +1709,7 @@ function sendEmail() {
   const message = document.getElementById("emailMessage").value.trim();
   if (!recipients) return alert("Please enter at least one recipient.");
   // Send to backend for logging and possible delivery
-  fetch("https://tcstudentserver-production.up.railway.app/sendEmail", {
+  fetch(`${API_BASE_URL}/sendEmail`, {
     // Changed from 5000 to 3000
     method: "POST",
     headers: { "Content-Type": "application/json" },
