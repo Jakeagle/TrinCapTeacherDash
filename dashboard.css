@@ -212,7 +212,239 @@ dialog#globalDialog::backdrop {
   cursor: pointer;
 }
 
+/* --- Create Lesson Modal Layout --- */
+.lesson-modal-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.lesson-modal-footer {
+  flex-shrink: 0; /* Prevent footer from shrinking */
+  padding-top: 1.2em;
+  margin-top: 1.5em;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75em;
+}
+
+#saveLessonBtn {
+  background: #00ffcc;
+  color: #3b0a70;
+  font-weight: 700;
+}
+
+/* --- Create Lesson Modal Styles --- */
+.lesson-modal-container {
+  display: flex;
+  gap: 1.5em;
+  flex-grow: 1; /* Fill available space */
+  min-height: 0; /* Fix flexbox overflow */
+  text-align: left;
+}
+
+.lesson-form-main {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5em;
+}
+
+.lesson-actions-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75em;
+  padding: 1.5em;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  align-self: flex-start; /* Align to top */
+}
+
+.lesson-actions-panel .btn {
+  color: #ffffff; /* Bright white text */
+  font-weight: 600; /* Bolder text */
+  border: none;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.lesson-actions-panel .btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.15);
+}
+
+#createUnitBtn {
+  background-color: #9575cd;
+}
+#assignToUnitBtn {
+  background-color: #7e57c2;
+  /* Ensure styles are maintained when moved out of the actions panel */
+  color: #ffffff;
+  font-weight: 600;
+  border: none;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+#assignToUnitBtn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.15);
+}
+#assignToClassBtn {
+  background-color: #5e35b1;
+}
+#uploadToWhirlpoolBtn {
+  background-color: #00bfa5;
+}
+
+.dialog-section-title {
+  font-weight: 700;
+  color: #00ffcc;
+  margin: 0 0 0.75em 0;
+  padding-bottom: 0.5em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 1.1em;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+
+.form-group label {
+  font-weight: 700;
+  font-size: 0.9em;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dialog-input,
+.dialog-textarea,
+.dialog-select {
+  width: 100%;
+  padding: 0.7em 0.8em;
+  border-radius: 6px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 1em;
+  font-family: inherit;
+}
+
+.dialog-textarea {
+  min-height: 150px;
+  resize: vertical;
+  flex-grow: 1; /* Allow textarea to fill space */
+}
+
+.dialog-select option,
+select.dialog-input option {
+  /* Set background to white and text to black for readability in dropdown */
+  background-color: white;
+  color: black;
+}
+
 /* Messages Dialog Styles */
+.lesson-builder-section {
+  background: rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5em;
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.block-controls {
+  display: flex;
+  gap: 0.75em;
+  flex-wrap: wrap;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 1em;
+  margin-top: 0.5em;
+}
+
+.btn-modal-action {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.5em 1em;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-modal-action:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.content-block,
+.condition-block {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 1em 1.5em 1.5em 1.5em;
+  margin-bottom: 1em;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75em;
+}
+
+.remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.remove-btn:hover {
+  background: #ff5252;
+  color: #fff;
+}
+
+.condition-block .form-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  flex-wrap: wrap;
+}
+
+.condition-block .form-group label {
+  flex-shrink: 0;
+  margin-bottom: 0;
+}
+
+.condition-block .dialog-input {
+  flex-grow: 1;
+}
+
+.content-block label,
+.condition-block label {
+  font-weight: 600;
+  font-size: 0.85em;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+}
+
+.action-details {
+  margin-top: 0.5em;
+  padding-left: 1em;
+  border-left: 2px solid #9575cd;
+}
 dialog#messagesDialog {
   background: #3b0a70;
   color: #fff;
@@ -507,6 +739,44 @@ dialog#signOnDialog::backdrop {
   margin-bottom: 0.5em;
   font-size: 1em;
   min-height: 1.5em;
+}
+
+/* --- Register Students Dialog --- */
+.register-students-layout {
+  display: flex;
+  flex-direction: row; /* Changed from column */
+  align-items: flex-start;
+  gap: 1.5em;
+  height: 100%;
+}
+
+.register-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  padding: 1.5em;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  height: 100%;
+  overflow-y: auto; /* Add scroll if content overflows */
+}
+
+.vertical-divider {
+  width: 1px;
+  background-color: rgba(255, 255, 255, 0.2);
+  align-self: stretch;
+}
+
+/* Responsive layout for the dialog */
+@media (max-width: 992px) {
+  .register-students-layout {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .vertical-divider {
+    display: none;
+  }
 }
 
 @media (max-width: 768px) {
