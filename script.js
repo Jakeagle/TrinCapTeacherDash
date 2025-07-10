@@ -3,6 +3,8 @@ const signOnDialog = document.getElementById("signOnDialog");
 const messagesDialog = document.getElementById("messagesDialog");
 // This will be the new central data store for all message threads
 window.messageThreads = new Map();
+window.teacherUnits = [];
+window.allTeacherLessons = [];
 const API_BASE_URL = "https://tcstudentserver-production.up.railway.app";
 
 // Helper to hash PIN using SHA-256
@@ -768,9 +770,89 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
       document
-        .getElementById("assignToClassBtn")
+        .getElementById("assignToClassBtn") // This is the button in the lesson builder
         .addEventListener("click", () => {
-          alert("TODO: Show assign to class dialog.");
+          const unitSelector = document.getElementById("unitSelector");
+          const selectedUnitValue = unitSelector.value;
+          const selectedUnitName =
+            unitSelector.options[unitSelector.selectedIndex].text;
+
+          if (!selectedUnitValue) {
+            alert("Please select a unit to assign.");
+            return;
+          }
+
+          // Hardcoding periods based on the UI tabs.
+          const availablePeriods = ["01", "02", "03"];
+
+          const periodOptions = availablePeriods
+            .map(
+              (p) => `<option value="${p}">Period ${parseInt(p, 10)}</option>`
+            )
+            .join("");
+
+          const content = `
+            <p>Assigning unit: <strong>${selectedUnitName}</strong></p>
+            <div class="form-group" style="text-align: left; margin-top: 1em;">
+                <label for="classPeriodSelector">Select Class Period to Assign To:</label>
+                <select id="classPeriodSelector" class="dialog-input" style="width: 100%; margin-top: 0.5em;">
+                    ${periodOptions}
+                </select>
+            </div>
+            <button id="confirmAssignBtn" class="btn btn-primary" style="margin-top: 1.5em;">Confirm Assignment</button>
+        `;
+
+          window.openGlobalDialog("Assign Unit to Class", content);
+
+          const confirmBtn = document.getElementById("confirmAssignBtn");
+          if (confirmBtn) {
+            confirmBtn.addEventListener(
+              "click",
+              async () => {
+                const classPeriodSelector = document.getElementById(
+                  "classPeriodSelector"
+                );
+                const selectedPeriod = classPeriodSelector.value;
+
+                try {
+                  const response = await fetch(
+                    `https://tclessonserver-production.up.railway.app/assign-unit`,
+                    {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        teacherName: window.activeTeacherName,
+                        unitValue: selectedUnitValue,
+                        classPeriod: selectedPeriod,
+                      }),
+                    }
+                  );
+
+                  const result = await response.json();
+
+                  if (response.ok && result.success) {
+                    alert(
+                      `Successfully assigned '${selectedUnitName}' to Period ${parseInt(
+                        selectedPeriod,
+                        10
+                      )}.`
+                    );
+                    window.closeGlobalDialog();
+                    // Refresh the lesson view to show the assignment status
+                    loadTeacherLessons(window.activeTeacherName);
+                  } else {
+                    alert(
+                      `Error: ${result.message || "Failed to assign unit."}`
+                    );
+                  }
+                } catch (error) {
+                  console.error("Error assigning unit:", error);
+                  alert("A network error occurred. Please try again.");
+                }
+              },
+              { once: true }
+            );
+          }
         });
       document
         .getElementById("uploadToWhirlpoolBtn")
@@ -880,6 +962,81 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+  document
+    .getElementById("lessonManagementBtn")
+    ?.addEventListener("click", function () {
+      const content = `
+        <div class="lesson-management-container">
+          
+          <!-- Left Panel: Displays assigned units and their lessons -->
+          <div class="assigned-units-view">
+            <h5>Currently Assigned Units</h5>
+            <div id="assignedUnitsContainer">
+              <!-- Example of a rendered unit card -->
+              <div class="assigned-unit-card" data-unit-value="unit1">
+                <h6>Unit 1: Introduction to Banking</h6>
+                <ul class="lesson-list-management">
+                  <li>
+                    <span>Lesson: What is a Bank?</span>
+                    <div class="lesson-actions">
+                      <button class="btn btn-sm btn-danger remove-lesson-btn">Remove</button>
+                      <button class="btn btn-sm btn-info replace-lesson-btn">Replace</button>
+                    </div>
+                  </li>
+                  <li>
+                    <span>Lesson: Types of Accounts</span>
+                    <div class="lesson-actions">
+                      <button class="btn btn-sm btn-danger remove-lesson-btn">Remove</button>
+                      <button class="btn btn-sm btn-info replace-lesson-btn">Replace</button>
+                    </div>
+                  </li>
+                </ul>
+                <button class="btn btn-primary save-unit-btn">Save Changes to Unit 1</button>
+              </div>
+              <!-- More units would be rendered here dynamically -->
+            </div>
+          </div>
+
+          <!-- Right Panel: Tools for managing lessons -->
+          <div class="lesson-tools">
+            <h5>Lesson Tools</h5>
+            
+            <div class="form-group">
+              <label for="masterLessonSelect">All Available Lessons</label>
+              <select id="masterLessonSelect" class="dialog-input" style="margin-top: 0.5em;"></select>
+              <small style="font-size: 0.8em; color: rgba(255,255,255,0.7); margin-top: 0.5em;">To replace a lesson, select one from this list, then click "Replace" on a lesson to the left.</small>
+            </div>
+            
+            <hr />
+            
+            <h5>Assign Unit to Class</h5>
+            <form id="assignUnitForm">
+              <div class="form-group" style="margin-top: 1em;"><label for="unitSelectForAssignment">Select Unit:</label><select id="unitSelectForAssignment" class="dialog-input" style="width: 100%; margin-top: 0.5em;"></select></div>
+              <div class="form-group" style="margin-top: 1em;"><label for="classPeriodSelect">Select Class Period:</label><select id="classPeriodSelect" class="dialog-input" style="width: 100%; margin-top: 0.5em;"><option value="01">Period 1</option><option value="02">Period 2</option><option value="03">Period 3</option></select></div>
+              <button type="submit" class="btn btn-primary" style="margin-top: 1.5em; width: 100%;">Assign Unit</button>
+            </form>
+          </div>
+        </div>
+      `;
+      window.openGlobalDialog("Lesson Management", "");
+      document.getElementById("dialogContent").innerHTML = content;
+      populateMasterLessonSelect();
+
+      // Event delegation for dynamically created buttons inside the dialog
+      document
+        .getElementById("dialogContent")
+        .addEventListener("click", function (e) {
+          if (e.target.classList.contains("remove-lesson-btn")) {
+            const lessonItem = e.target.closest("li");
+            if (lessonItem) {
+              lessonItem.remove();
+              console.log("Lesson item removed from view.");
+            }
+          } else if (e.target.classList.contains("replace-lesson-btn")) {
+            console.log("Replace button clicked!");
+          }
+        });
+    });
   document
     .getElementById("sendClassMessageBtn")
     ?.addEventListener("click", function () {
@@ -1242,20 +1399,27 @@ async function loadTeacherLessons(teacherName) {
     if (response.ok) {
       const data = await response.json();
       if (data.success) {
-        window.teacherUnits = data.units || [];
-        console.log("Teacher lessons loaded:", window.teacherUnits);
-        // TODO: Render lessons to the UI
+        window.teacherUnits = data.units || []; // This is the structured data of units with their lessons
+        window.allTeacherLessons = data.lessons || []; // This is the flat list of all lessons the teacher has ever created
+        console.log("Teacher units loaded:", window.teacherUnits);
+        console.log(
+          "All individual teacher lessons loaded:",
+          window.allTeacherLessons
+        );
       } else {
         console.error("Failed to load teacher lessons:", data.message);
         window.teacherUnits = [];
+        window.allTeacherLessons = [];
       }
     } else {
       console.error("Failed to load teacher lessons:", response.statusText);
       window.teacherUnits = [];
+      window.allTeacherLessons = [];
     }
   } catch (error) {
     console.error("Error fetching teacher lessons:", error);
     window.teacherUnits = [];
+    window.allTeacherLessons = [];
   }
 }
 
@@ -1284,6 +1448,33 @@ function getYoutubeEmbedUrl(input) {
 
   // Assume it's a direct video link (e.g., .mp4) if no YouTube match
   return input;
+}
+
+// Populates the 'All Available Lessons' dropdown in the lesson management modal.
+function populateMasterLessonSelect() {
+  const masterSelect = document.getElementById("masterLessonSelect");
+  if (!masterSelect) {
+    console.error("masterLessonSelect element not found in the DOM.");
+    return;
+  }
+
+  // Clear existing options but keep a placeholder
+  masterSelect.innerHTML =
+    '<option value="">-- Select a lesson to replace with --</option>';
+
+  if (window.allTeacherLessons && Array.isArray(window.allTeacherLessons)) {
+    // Sort lessons alphabetically by title for better UX
+    const sortedLessons = [...window.allTeacherLessons].sort((a, b) =>
+      a.lesson_title.localeCompare(b.lesson_title)
+    );
+
+    sortedLessons.forEach((lesson) => {
+      const option = document.createElement("option");
+      option.value = lesson._id; // The unique ID from the 'Lessons' collection
+      option.textContent = lesson.lesson_title;
+      masterSelect.appendChild(option);
+    });
+  }
 }
 
 // Populates the 'Assign to Unit' dropdown from the window.teacherUnits array
