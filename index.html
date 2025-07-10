@@ -9,7 +9,59 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="dashboard.css" />
-    <style></style>
+    <style>
+      /* Styles for the new Lesson Management Modal */
+      .lesson-management-container {
+        display: flex;
+        gap: 1.5em;
+        width: 100%;
+        height: 100%;
+        text-align: left;
+      }
+      .assigned-units-view {
+        flex: 3; /* Takes up more space */
+        overflow-y: auto;
+        padding-right: 1em;
+        border-right: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      .lesson-tools {
+        flex: 2; /* Takes up less space */
+      }
+      .assigned-unit-card {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 1em;
+        border-radius: 8px;
+        margin-bottom: 1em;
+      }
+      .assigned-unit-card h6 {
+        color: #00ffcc;
+        border-bottom: 1px solid #00ffcc;
+        padding-bottom: 0.5em;
+        margin-bottom: 1em;
+      }
+      .lesson-list-management {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .lesson-list-management li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5em;
+        border-radius: 4px;
+        margin-bottom: 0.5em;
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .lesson-actions {
+        display: flex;
+        gap: 0.5em;
+      }
+      .save-unit-btn {
+        width: 100%;
+        margin-top: 1em;
+      }
+    </style>
   </head>
 
   <body>
@@ -28,6 +80,9 @@
         </button>
         <button class="btn sidebar-action" id="createLessonBtn">
           Create Lesson
+        </button>
+        <button class="btn sidebar-action" id="lessonManagementBtn">
+          Lessons
         </button>
         <button class="btn sidebar-action" id="sendClassMessageBtn">
           Send Class Message
@@ -133,6 +188,7 @@
         </div>
       </div>
     </dialog>
+
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script src="script.js" type="module"></script>
   </body>
