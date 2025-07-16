@@ -264,7 +264,10 @@ document.addEventListener("DOMContentLoaded", function () {
           window.activeTeacherUsername = username;
           window.activeTeacherName = teacherName;
 
+          // Identify with both servers
           socket.emit("identify", teacherName);
+          lessonSocket.emit("identify", teacherName);
+
           signOnDialog.close();
 
           document
@@ -972,28 +975,7 @@ document.addEventListener("DOMContentLoaded", function () {
           <div class="assigned-units-view">
             <h5>Currently Assigned Units</h5>
             <div id="assignedUnitsContainer">
-              <!-- Example of a rendered unit card -->
-              <div class="assigned-unit-card" data-unit-value="unit1">
-                <h6>Unit 1: Introduction to Banking</h6>
-                <ul class="lesson-list-management">
-                  <li>
-                    <span>Lesson: What is a Bank?</span>
-                    <div class="lesson-actions">
-                      <button class="btn btn-sm btn-danger remove-lesson-btn">Remove</button>
-                      <button class="btn btn-sm btn-info replace-lesson-btn">Replace</button>
-                    </div>
-                  </li>
-                  <li>
-                    <span>Lesson: Types of Accounts</span>
-                    <div class="lesson-actions">
-                      <button class="btn btn-sm btn-danger remove-lesson-btn">Remove</button>
-                      <button class="btn btn-sm btn-info replace-lesson-btn">Replace</button>
-                    </div>
-                  </li>
-                </ul>
-                <button class="btn btn-primary save-unit-btn">Save Changes to Unit 1</button>
-              </div>
-              <!-- More units would be rendered here dynamically -->
+              <!-- Units will be populated dynamically -->
             </div>
           </div>
 
@@ -1020,7 +1002,124 @@ document.addEventListener("DOMContentLoaded", function () {
       `;
       window.openGlobalDialog("Lesson Management", "");
       document.getElementById("dialogContent").innerHTML = content;
+
+      // Populate the assigned units container
+      populateAssignedUnits();
+
+      // Populate the dropdowns
       populateMasterLessonSelect();
+      populateUnitSelectorForAssignment();
+
+      // Function to populate assigned units from teacherUnits data
+      function populateAssignedUnits() {
+        const container = document.getElementById("assignedUnitsContainer");
+        if (!container) return;
+
+        if (
+          !window.teacherUnits ||
+          !Array.isArray(window.teacherUnits) ||
+          window.teacherUnits.length === 0
+        ) {
+          container.innerHTML =
+            '<p style="color: rgba(255,255,255,0.7); font-style: italic;">No units assigned yet. Create and assign units to see them here.</p>';
+          return;
+        }
+
+        container.innerHTML = "";
+
+        window.teacherUnits.forEach((unit) => {
+          // Debug logging
+          console.log("Debug - Unit data:", unit);
+          console.log("Debug - Unit._id:", unit._id, "type:", typeof unit._id);
+
+          const unitCard = document.createElement("div");
+          unitCard.className = "assigned-unit-card";
+          unitCard.setAttribute("data-unit-value", unit.value);
+          unitCard.setAttribute("data-unit-id", unit._id || "");
+
+          let lessonsHtml = "";
+          if (unit.lessons && Array.isArray(unit.lessons)) {
+            lessonsHtml = unit.lessons
+              .map((lesson) => {
+                // Debug logging for lessons
+                console.log("Debug - Lesson data:", lesson);
+                console.log(
+                  "Debug - Lesson._id:",
+                  lesson._id,
+                  "type:",
+                  typeof lesson._id
+                );
+
+                // Find the matching lesson in allTeacherLessons to get the _id
+                const matchingLesson = window.allTeacherLessons.find(
+                  (fullLesson) =>
+                    fullLesson.lesson_title === lesson.lesson_title
+                );
+
+                const lessonId = matchingLesson ? matchingLesson._id : "";
+                console.log("Debug - Matched lesson ID:", lessonId);
+
+                return `
+                    <li data-lesson-id="${lessonId}">
+                      <span>Lesson: ${lesson.lesson_title}</span>
+                      <div class="lesson-actions">
+                        <button class="btn btn-sm btn-danger remove-lesson-btn">Remove</button>
+                        <button class="btn btn-sm btn-info replace-lesson-btn">Replace</button>
+                      </div>
+                    </li>
+                  `;
+              })
+              .join("");
+          }
+
+          if (!lessonsHtml) {
+            lessonsHtml =
+              '<li style="color: rgba(255,255,255,0.7); font-style: italic;">No lessons in this unit yet.</li>';
+          }
+
+          unitCard.innerHTML = `
+            <h6>${unit.name || `Unit ${unit.number}: ${unit.unitName}`}</h6>
+            <ul class="lesson-list-management">
+              ${lessonsHtml}
+            </ul>
+            <button class="btn btn-primary save-unit-btn">Save Changes to ${
+              unit.name || unit.unitName
+            }</button>
+          `;
+
+          container.appendChild(unitCard);
+        });
+      }
+
+      // Function to populate unit selector for assignment
+      function populateUnitSelectorForAssignment() {
+        const unitSelector = document.getElementById("unitSelectForAssignment");
+        if (!unitSelector) {
+          console.error("unitSelectForAssignment not found in the DOM");
+          return;
+        }
+
+        // Clear existing options
+        unitSelector.innerHTML =
+          '<option value="">-- Select a unit --</option>';
+
+        // Populate from global teacherUnits, sorting them by unit number
+        if (window.teacherUnits && Array.isArray(window.teacherUnits)) {
+          const sortedUnits = [...window.teacherUnits].sort((a, b) => {
+            const numA = parseInt(a.value.replace("unit", ""), 10);
+            const numB = parseInt(b.value.replace("unit", ""), 10);
+            return (isNaN(numA) ? 9999 : numA) - (isNaN(numB) ? 9999 : numB);
+          });
+
+          sortedUnits.forEach((unit) => {
+            const option = document.createElement("option");
+            option.value = unit.value;
+            option.textContent =
+              unit.name || `Unit ${unit.number}: ${unit.unitName}`;
+            unitSelector.appendChild(option);
+          });
+        }
+      }
 
       // Event delegation for dynamically created buttons inside the dialog
       document
@@ -1033,10 +1132,319 @@ document.addEventListener("DOMContentLoaded", function () {
               console.log("Lesson item removed from view.");
             }
           } else if (e.target.classList.contains("replace-lesson-btn")) {
-            console.log("Replace button clicked!");
+            handleLessonReplace(e.target);
+          } else if (e.target.classList.contains("save-unit-btn")) {
+            handleSaveUnit(e.target);
           }
         });
+
+      // Handle lesson assignment to units
+      document
+        .getElementById("assignLessonToUnitBtn")
+        ?.addEventListener("click", function () {
+          const selectedLessonId = document.getElementById(
+            "allAvailableLessonsSelect"
+          ).value;
+          const selectedUnitValue = document.getElementById(
+            "unitSelectForAssignment"
+          ).value;
+
+          if (!selectedLessonId || !selectedUnitValue) {
+            alert(
+              "Please select both a lesson and a unit to assign the lesson to."
+            );
+            return;
+          }
+
+          // Find the selected lesson details
+          const selectedLesson = window.allTeacherLessons.find(
+            (lesson) => lesson._id === selectedLessonId
+          );
+          if (!selectedLesson) {
+            alert("Selected lesson not found.");
+            return;
+          }
+
+          // Find the selected unit
+          const selectedUnit = window.teacherUnits.find(
+            (unit) => unit.value === selectedUnitValue
+          );
+          if (!selectedUnit) {
+            alert("Selected unit not found.");
+            return;
+          }
+
+          // Add the lesson to the unit
+          if (!selectedUnit.lessons) {
+            selectedUnit.lessons = [];
+          }
+
+          // Check if lesson is already in the unit
+          const isAlreadyAssigned = selectedUnit.lessons.some(
+            (lesson) => lesson._id === selectedLessonId
+          );
+          if (isAlreadyAssigned) {
+            alert("This lesson is already assigned to this unit.");
+            return;
+          }
+
+          // Add the lesson to the unit
+          selectedUnit.lessons.push(selectedLesson);
+
+          // Update the UI
+          populateAssignedUnits();
+
+          // Clear the selection
+          document.getElementById("allAvailableLessonsSelect").value = "";
+          document.getElementById("unitSelectForAssignment").value = "";
+
+          alert("Lesson assigned to unit successfully!");
+        });
+
+      // Function to handle lesson replacement
+      async function handleLessonReplace(replaceButton) {
+        const masterLessonSelect =
+          document.getElementById("masterLessonSelect");
+        const selectedLessonId = masterLessonSelect.value;
+
+        if (!selectedLessonId) {
+          alert(
+            "Please select a lesson from the 'All Available Lessons' dropdown first."
+          );
+          return;
+        }
+
+        const selectedLessonText =
+          masterLessonSelect.options[masterLessonSelect.selectedIndex].text;
+        const lessonItem = replaceButton.closest("li");
+        const lessonSpan = lessonItem.querySelector("span");
+        const currentLessonText = lessonSpan.textContent;
+
+        // Get the lesson ID and unit value from data attributes
+        const oldLessonId = lessonItem.getAttribute("data-lesson-id");
+        const unitCard = lessonItem.closest(".assigned-unit-card");
+        const unitValue = unitCard.getAttribute("data-unit-value");
+
+        // Debug logging
+        console.log("Debug - Replace lesson data:");
+        console.log("Lesson item clicked:", lessonItem);
+        console.log(
+          "Full lesson data:",
+          JSON.stringify(lessonItem.dataset, null, 2)
+        );
+        console.log("Unit card:", unitCard);
+        console.log(
+          "Full unit data:",
+          JSON.stringify(unitCard.dataset, null, 2)
+        );
+        console.log("oldLessonId:", oldLessonId, "type:", typeof oldLessonId);
+        console.log("unitValue:", unitValue, "type:", typeof unitValue);
+        console.log(
+          "selectedLessonId:",
+          selectedLessonId,
+          "type:",
+          typeof selectedLessonId
+        );
+
+        if (!oldLessonId || !unitValue) {
+          console.error(
+            "Missing IDs - oldLessonId:",
+            oldLessonId,
+            "unitValue:",
+            unitValue
+          );
+          console.error("Unit card dataset:", unitCard.dataset);
+          console.error("Lesson item dataset:", lessonItem.dataset);
+          alert(
+            "Unable to find the lesson to replace. The data structure is missing required IDs. Please check the lesson server data format."
+          );
+          return;
+        }
+
+        // Confirm the replacement
+        const confirmReplace = confirm(
+          `Are you sure you want to replace "${currentLessonText}" with "${selectedLessonText}"?`
+        );
+
+        if (!confirmReplace) {
+          return;
+        }
+
+        try {
+          // Show loading state
+          replaceButton.disabled = true;
+          replaceButton.textContent = "Replacing...";
+
+          // Debug the request payload
+          const requestPayload = {
+            teacherName: window.activeTeacherName,
+            unitValue: unitValue,
+            oldLessonId: oldLessonId,
+            newLessonId: selectedLessonId,
+          };
+          console.log("Debug - Request payload:", requestPayload);
+
+          // Send the replacement request to the server
+          const response = await fetch(`${API_BASE_URL}/replaceLessonInUnit`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestPayload),
+          });
+
+          const result = await response.json();
+
+          if (response.ok && result.success) {
+            // Update the UI to show the new lesson
+            lessonSpan.textContent = `Lesson: ${selectedLessonText}`;
+            lessonItem.setAttribute("data-lesson-id", selectedLessonId);
+
+            // Update the local teacherUnits data
+            if (window.teacherUnits && Array.isArray(window.teacherUnits)) {
+              const unit = window.teacherUnits.find(
+                (u) => u.value === unitValue
+              );
+              if (unit && unit.lessons) {
+                const lessonIndex = unit.lessons.findIndex(
+                  (l) => l._id === oldLessonId
+                );
+                if (lessonIndex !== -1) {
+                  // Find the new lesson data from allTeacherLessons
+                  const newLessonData = window.allTeacherLessons.find(
+                    (l) => l._id === selectedLessonId
+                  );
+                  if (newLessonData) {
+                    unit.lessons[lessonIndex] = {
+                      _id: selectedLessonId,
+                      lesson_title: newLessonData.lesson_title,
+                      intro_text_blocks: newLessonData.intro_text_blocks,
+                      conditions: newLessonData.conditions,
+                    };
+                  }
+                }
+              }
+            }
+
+            alert(`Lesson replaced successfully with "${selectedLessonText}"`);
+
+            // Reset the dropdown
+            masterLessonSelect.selectedIndex = 0;
+          } else {
+            alert(`Error: ${result.message || "Failed to replace lesson"}`);
+          }
+        } catch (error) {
+          console.error("Error replacing lesson:", error);
+          alert(
+            "An error occurred while replacing the lesson. Please try again."
+          );
+        } finally {
+          // Reset button state
+          replaceButton.disabled = false;
+          replaceButton.textContent = "Replace";
+        }
+      }
     });
+
+  // Handle saving unit changes
+  async function handleSaveUnit(saveButton) {
+    const unitCard = saveButton.closest(".assigned-unit-card");
+    if (!unitCard) {
+      alert("Unable to find unit information. Please try again.");
+      return;
+    }
+
+    const unitValue = unitCard.getAttribute("data-unit-value");
+    if (!unitValue) {
+      alert("Unable to find unit identifier. Please try again.");
+      return;
+    }
+
+    // Extract lessons from the unit card
+    const lessonItems = unitCard.querySelectorAll(".lesson-list-management li");
+    const lessons = [];
+
+    lessonItems.forEach((lessonItem) => {
+      const lessonId = lessonItem.getAttribute("data-lesson-id");
+      const lessonText = lessonItem.querySelector("span")?.textContent;
+
+      if (
+        lessonId &&
+        lessonText &&
+        lessonText !== "No lessons in this unit yet."
+      ) {
+        // Find the full lesson data from allTeacherLessons
+        const fullLesson = window.allTeacherLessons.find(
+          (l) => l._id === lessonId
+        );
+        if (fullLesson) {
+          lessons.push({
+            lesson_title: fullLesson.lesson_title,
+            intro_text_blocks: fullLesson.intro_text_blocks,
+            conditions: fullLesson.conditions,
+          });
+        }
+      }
+    });
+
+    // Debug logging
+    console.log("Saving unit:", unitValue);
+    console.log("Lessons to save:", lessons);
+
+    try {
+      const originalText = saveButton.textContent;
+      saveButton.disabled = true;
+      saveButton.textContent = "Saving...";
+
+      const response = await fetch(`${API_BASE_URL}/saveUnitChanges`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          teacherName: window.activeTeacherName,
+          unitValue: unitValue,
+          lessons: lessons,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        alert(
+          `Unit changes saved successfully! ${result.lessonsCount} lessons saved.`
+        );
+
+        // Update the local data
+        if (window.teacherUnits && Array.isArray(window.teacherUnits)) {
+          const unit = window.teacherUnits.find((u) => u.value === unitValue);
+          if (unit) {
+            unit.lessons = lessons;
+          }
+        }
+
+        // Visual feedback - briefly change button color
+        saveButton.style.backgroundColor = "#28a745";
+        saveButton.textContent = "Saved!";
+
+        setTimeout(() => {
+          saveButton.style.backgroundColor = "";
+          saveButton.textContent = originalText;
+        }, 2000);
+      } else {
+        alert(`Error: ${result.message || "Failed to save unit changes"}`);
+      }
+    } catch (error) {
+      console.error("Error saving unit changes:", error);
+      alert("An error occurred while saving unit changes. Please try again.");
+    } finally {
+      saveButton.disabled = false;
+      if (saveButton.textContent === "Saving...") {
+        saveButton.textContent = `Save Changes to ${unitValue}`;
+      }
+    }
+  }
+
   document
     .getElementById("sendClassMessageBtn")
     ?.addEventListener("click", function () {
@@ -1403,8 +1811,16 @@ async function loadTeacherLessons(teacherName) {
         window.allTeacherLessons = data.lessons || []; // This is the flat list of all lessons the teacher has ever created
         console.log("Teacher units loaded:", window.teacherUnits);
         console.log(
+          "Sample unit structure:",
+          JSON.stringify(window.teacherUnits[0], null, 2)
+        );
+        console.log(
           "All individual teacher lessons loaded:",
           window.allTeacherLessons
+        );
+        console.log(
+          "Sample lesson structure:",
+          JSON.stringify(window.allTeacherLessons[0], null, 2)
         );
       } else {
         console.error("Failed to load teacher lessons:", data.message);
@@ -1420,6 +1836,146 @@ async function loadTeacherLessons(teacherName) {
     console.error("Error fetching teacher lessons:", error);
     window.teacherUnits = [];
     window.allTeacherLessons = [];
+  }
+}
+
+// Refresh the lesson management modal display with updated data
+function refreshLessonManagementModal() {
+  const globalDialog = document.getElementById("globalDialog");
+  const dialogTitle = document.getElementById("dialogTitle");
+
+  // Only refresh if the lesson management modal is currently open
+  if (
+    globalDialog &&
+    globalDialog.open &&
+    dialogTitle &&
+    dialogTitle.textContent === "Lesson Management"
+  ) {
+    console.log("Refreshing lesson management modal display");
+    console.log("Current teacherUnits data:", window.teacherUnits);
+    console.log("Current allTeacherLessons data:", window.allTeacherLessons);
+
+    // Call the internal populateAssignedUnits function if it exists
+    // Since it's defined inside the modal opening function, we need to recreate it
+    const container = document.getElementById("assignedUnitsContainer");
+    if (container) {
+      console.log("Refreshing assignedUnitsContainer");
+      populateAssignedUnitsDisplay(container);
+    } else {
+      console.error("assignedUnitsContainer not found");
+    }
+
+    // Also refresh the dropdowns
+    populateMasterLessonSelect();
+
+    // Check if the unit selector function exists and call it
+    const unitSelector = document.getElementById("unitSelectForAssignment");
+    if (unitSelector) {
+      populateUnitSelectorForAssignmentDisplay(unitSelector);
+    }
+  } else {
+    console.log("Lesson management modal is not open, skipping refresh");
+  }
+}
+
+// Helper function to populate assigned units display
+function populateAssignedUnitsDisplay(container) {
+  if (!container) return;
+
+  if (
+    !window.teacherUnits ||
+    !Array.isArray(window.teacherUnits) ||
+    window.teacherUnits.length === 0
+  ) {
+    container.innerHTML =
+      '<p style="color: rgba(255,255,255,0.7); font-style: italic;">No units assigned yet. Create and assign units to see them here.</p>';
+    return;
+  }
+
+  container.innerHTML = "";
+
+  window.teacherUnits.forEach((unit) => {
+    console.log("Debug - Unit data:", unit);
+    console.log("Debug - Unit._id:", unit._id, "type:", typeof unit._id);
+
+    const unitCard = document.createElement("div");
+    unitCard.className = "assigned-unit-card";
+    unitCard.setAttribute("data-unit-value", unit.value);
+    unitCard.setAttribute("data-unit-id", unit._id || "");
+
+    let lessonsHtml = "";
+    if (unit.lessons && Array.isArray(unit.lessons)) {
+      lessonsHtml = unit.lessons
+        .map((lesson) => {
+          console.log("Debug - Lesson data:", lesson);
+          console.log(
+            "Debug - Lesson._id:",
+            lesson._id,
+            "type:",
+            typeof lesson._id
+          );
+
+          // Find the matching lesson in allTeacherLessons to get the _id
+          const matchingLesson = window.allTeacherLessons.find(
+            (fullLesson) => fullLesson.lesson_title === lesson.lesson_title
+          );
+
+          const lessonId = matchingLesson ? matchingLesson._id : "";
+          console.log("Debug - Matched lesson ID:", lessonId);
+
+          return `
+              <li data-lesson-id="${lessonId}">
+                <span>Lesson: ${lesson.lesson_title}</span>
+                <div class="lesson-actions">
+                  <button class="btn btn-sm btn-danger remove-lesson-btn">Remove</button>
+                  <button class="btn btn-sm btn-info replace-lesson-btn">Replace</button>
+                </div>
+              </li>
+            `;
+        })
+        .join("");
+    }
+
+    if (!lessonsHtml) {
+      lessonsHtml =
+        '<li style="color: rgba(255,255,255,0.7); font-style: italic;">No lessons in this unit yet.</li>';
+    }
+
+    unitCard.innerHTML = `
+      <h6>${unit.name || `Unit ${unit.number}: ${unit.unitName}`}</h6>
+      <ul class="lesson-list-management">
+        ${lessonsHtml}
+      </ul>
+      <button class="btn btn-primary save-unit-btn">Save Changes to ${
+        unit.name || unit.unitName
+      }</button>
+    `;
+
+    container.appendChild(unitCard);
+  });
+}
+
+// Helper function to populate unit selector for assignment
+function populateUnitSelectorForAssignmentDisplay(unitSelector) {
+  if (!unitSelector) return;
+
+  // Clear existing options
+  unitSelector.innerHTML = '<option value="">-- Select a unit --</option>';
+
+  // Populate from global teacherUnits, sorting them by unit number
+  if (window.teacherUnits && Array.isArray(window.teacherUnits)) {
+    const sortedUnits = [...window.teacherUnits].sort((a, b) => {
+      const numA = parseInt(a.value.replace("unit", ""), 10);
+      const numB = parseInt(b.value.replace("unit", ""), 10);
+      return (isNaN(numA) ? 9999 : numA) - (isNaN(numB) ? 9999 : numB);
+    });
+
+    sortedUnits.forEach((unit) => {
+      const option = document.createElement("option");
+      option.value = unit.value;
+      option.textContent = unit.name || `Unit ${unit.number}: ${unit.unitName}`;
+      unitSelector.appendChild(option);
+    });
   }
 }
 
@@ -1511,6 +2067,162 @@ function populateUnitSelector() {
 // Listen for new students being added live via socket.io
 const socket = io(API_BASE_URL, {
   withCredentials: true,
+});
+
+// Socket.IO connection to lesson server (port 4000)
+const lessonSocket = io("http://localhost:4000", {
+  withCredentials: true,
+});
+
+// Listen for lesson server events
+lessonSocket.on("connect", () => {
+  console.log("Connected to lesson server (port 4000)");
+  if (window.activeTeacherName) {
+    console.log("Identifying with lesson server as:", window.activeTeacherName);
+    lessonSocket.emit("identify", window.activeTeacherName);
+  } else {
+    console.log("No active teacher name set yet");
+  }
+});
+
+lessonSocket.on("disconnect", () => {
+  console.log("Disconnected from lesson server (port 4000)");
+});
+
+lessonSocket.on("identified", (data) => {
+  console.log("Lesson server identification successful:", data);
+});
+
+lessonSocket.on("error", (error) => {
+  console.error("Lesson server error:", error);
+});
+
+// Test listener to catch any events
+lessonSocket.onAny((eventName, ...args) => {
+  console.log("Received Socket.IO event:", eventName, args);
+});
+
+// Add a global function to test Socket.IO connection
+window.testSocketIO = function () {
+  console.log("Current teacher name:", window.activeTeacherName);
+  console.log("Lesson socket connected:", lessonSocket.connected);
+  console.log("Main socket connected:", socket.connected);
+
+  // Test emitting an event
+  lessonSocket.emit("test", "Hello from frontend");
+};
+
+// Listen for lesson creation events from lesson server
+lessonSocket.on("lessonCreated", (data) => {
+  const { teacherName, lessonData, unitData } = data;
+
+  // Only update if this is for the current teacher
+  if (teacherName === window.activeTeacherName) {
+    console.log("New lesson created:", lessonData);
+    console.log("Unit data:", unitData);
+
+    // Add lesson to the global lessons array
+    if (!window.allTeacherLessons) {
+      window.allTeacherLessons = [];
+    }
+    window.allTeacherLessons.push(lessonData);
+
+    // Update the All Available Lessons dropdown if it exists
+    populateMasterLessonSelect();
+
+    // Refresh the lesson management modal if it's open
+    const globalDialog = document.getElementById("globalDialog");
+    const dialogTitle = document.getElementById("dialogTitle");
+    if (
+      globalDialog &&
+      globalDialog.open &&
+      dialogTitle &&
+      dialogTitle.textContent === "Lesson Management"
+    ) {
+      console.log("Refreshing lesson management modal due to new lesson");
+      console.log(
+        "Before loadTeacherLessons - teacherUnits:",
+        window.teacherUnits
+      );
+      loadTeacherLessons(teacherName).then(() => {
+        console.log(
+          "After loadTeacherLessons - teacherUnits:",
+          window.teacherUnits
+        );
+        // After data is loaded, refresh the visual display
+        refreshLessonManagementModal();
+      });
+    } else {
+      console.log("Lesson management modal is not open, skipping refresh");
+    }
+
+    // Show notification
+    showNotification(
+      `New lesson "${lessonData.lesson_title}" created successfully!`,
+      "success"
+    );
+  } else {
+    console.log(
+      "Lesson created for different teacher:",
+      teacherName,
+      "vs",
+      window.activeTeacherName
+    );
+  }
+});
+
+// Listen for unit updates from lesson server
+lessonSocket.on("unitUpdated", (data) => {
+  const { teacherName, unitData } = data;
+
+  // Only update if this is for the current teacher
+  if (teacherName === window.activeTeacherName) {
+    console.log("Unit updated:", unitData);
+
+    // Update the unit selector dropdown if it exists
+    populateUnitSelectorForAssignment();
+
+    // Refresh the lesson management modal if it's open
+    const globalDialog = document.getElementById("globalDialog");
+    const dialogTitle = document.getElementById("dialogTitle");
+    if (
+      globalDialog &&
+      globalDialog.open &&
+      dialogTitle &&
+      dialogTitle.textContent === "Lesson Management"
+    ) {
+      console.log("Refreshing lesson management modal due to unit update");
+      loadTeacherLessons(teacherName).then(() => {
+        // After data is loaded, refresh the visual display
+        refreshLessonManagementModal();
+      });
+    }
+
+    // Show notification
+    showNotification(
+      `Unit "${unitData.name}" updated successfully!`,
+      "success"
+    );
+  }
+});
+
+// Listen for unit assignment from lesson server
+lessonSocket.on("unitAssigned", (data) => {
+  const { teacherName, unitData, classPeriod } = data;
+
+  // Only update if this is for the current teacher
+  if (teacherName === window.activeTeacherName) {
+    console.log("Unit assigned:", { unitData, classPeriod });
+
+    // Show notification
+    showNotification(
+      `Unit "${unitData.name}" assigned to Period ${parseInt(
+        classPeriod,
+        10
+      )}!`,
+      "success"
+    );
+  }
 });
 
 socket.on("studentAdded", (student) => {
@@ -1634,6 +2346,117 @@ socket.on("newMessage", (message) => {
     threadData.hasUnread = true;
   }
 });
+
+// --- Socket.IO event listeners for lesson management modal updates from main server ---
+// Listen for lesson replacement from main server
+socket.on("lessonReplaced", (data) => {
+  const { teacherName, unitValue, oldLesson, newLesson } = data;
+
+  // Only update if this is for the current teacher
+  if (teacherName === window.activeTeacherName) {
+    console.log("Lesson replaced:", { oldLesson, newLesson });
+
+    // Refresh the lesson management modal if it's open
+    const globalDialog = document.getElementById("globalDialog");
+    const dialogTitle = document.getElementById("dialogTitle");
+    if (
+      globalDialog &&
+      globalDialog.open &&
+      dialogTitle &&
+      dialogTitle.textContent === "Lesson Management"
+    ) {
+      console.log(
+        "Refreshing lesson management modal due to lesson replacement"
+      );
+      loadTeacherLessons(teacherName).then(() => {
+        // After data is loaded, refresh the visual display
+        refreshLessonManagementModal();
+      });
+    }
+
+    // Show notification
+    showNotification(
+      `Lesson "${oldLesson.lesson_title}" replaced with "${newLesson.lesson_title}"!`,
+      "success"
+    );
+  }
+});
+
+// Listen for unit saved from main server
+socket.on("unitSaved", (data) => {
+  const { teacherName, unitValue, lessons } = data;
+
+  // Only update if this is for the current teacher
+  if (teacherName === window.activeTeacherName) {
+    console.log("Unit saved:", { unitValue, lessons });
+
+    // Refresh the lesson management modal if it's open
+    const globalDialog = document.getElementById("globalDialog");
+    const dialogTitle = document.getElementById("dialogTitle");
+    if (
+      globalDialog &&
+      globalDialog.open &&
+      dialogTitle &&
+      dialogTitle.textContent === "Lesson Management"
+    ) {
+      console.log("Refreshing lesson management modal due to unit save");
+      loadTeacherLessons(teacherName).then(() => {
+        // After data is loaded, refresh the visual display
+        refreshLessonManagementModal();
+      });
+    }
+
+    // Show notification
+    showNotification(
+      `Unit changes saved successfully! (${lessons.length} lessons)`,
+      "success"
+    );
+  }
+});
+
+// Helper function to show notifications
+function showNotification(message, type = "info") {
+  // Create notification element
+  const notification = document.createElement("div");
+  notification.className = `notification notification-${type}`;
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: ${
+      type === "success" ? "#28a745" : type === "error" ? "#dc3545" : "#007bff"
+    };
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 10000;
+    font-weight: 500;
+    max-width: 300px;
+    word-wrap: break-word;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  `;
+  notification.textContent = message;
+
+  // Add to DOM
+  document.body.appendChild(notification);
+
+  // Fade in
+  setTimeout(() => {
+    notification.style.opacity = "1";
+  }, 10);
+
+  // Remove after 4 seconds
+  setTimeout(() => {
+    notification.style.opacity = "0";
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 300);
+  }, 4000);
+}
 
 // Close button for messages dialog
 const closeMessagesDialogBtn = document.getElementById("closeMessagesDialog");
