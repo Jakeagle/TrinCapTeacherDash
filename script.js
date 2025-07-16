@@ -2070,7 +2070,7 @@ const socket = io(API_BASE_URL, {
 });
 
 // Socket.IO connection to lesson server (port 4000)
-const lessonSocket = io("http://localhost:4000", {
+const lessonSocket = io("https://tclessonserver-production.up.railway.app", {
   withCredentials: true,
 });
 
