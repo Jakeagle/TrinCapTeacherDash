@@ -397,6 +397,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Close dialog function
   window.closeGlobalDialog = function () {
+    // Clear pending lesson changes when closing any dialog
+    if (window.pendingLessonChanges) {
+      window.pendingLessonChanges.clear();
+      console.log("Cleared pending lesson changes on dialog close");
+    }
+
     window.allowGlobalDialogOpen = false; // Reset flag
     if (dialog.open) dialog.close();
   };
@@ -412,6 +418,45 @@ document.addEventListener("DOMContentLoaded", function () {
   document
     .getElementById("createLessonBtn")
     ?.addEventListener("click", function () {
+      /*
+      ====================================================================
+      COMPREHENSIVE LESSON BUILDER WITH TRINITY CAPITAL APP INTEGRATION
+      ====================================================================
+      
+      This enhanced lesson creation modal now includes extensive conditionals 
+      that leverage ALL features of the Trinity Capital student app:
+      
+      STUDENT APP FEATURES COVERED:
+      • Account Management (Checking/Savings switching, balance tracking)
+      • Money Transfers (between accounts)
+      • Bills & Payments (recurring with various frequencies)
+      • Check Deposits (with validation)
+      • Peer-to-Peer Money Transfers
+      • Budget Analysis & Income/Expense Tracking
+      • Time Travel Financial Simulation
+      • Student Messaging System
+      • Loan System
+      
+      CONDITIONAL CATEGORIES AVAILABLE:
+      1. Account Balance Conditions - Track and respond to balance changes
+      2. Transaction Activity - Monitor student financial actions
+      3. Bills & Budget Management - Assess financial planning skills
+      4. Account Usage Patterns - Understand account preferences
+      5. Time & Engagement - Track lesson interaction
+      6. Social & Communication - Monitor peer interactions
+      7. Financial Literacy Behaviors - Evaluate real-world skills
+      
+      ACTION CATEGORIES AVAILABLE:
+      1. Educational Actions - Provide learning content
+      2. Interactive Challenges - Task-based learning
+      3. Account Actions - Simulate transactions
+      4. Feedback & Guidance - Personalized responses
+      5. Lesson Flow - Control progression
+      
+      This system ensures lessons are interactive and require students to 
+      actively use the Trinity Capital app features to learn financial literacy.
+      */
+
       // --- HTML Structure for the Lesson Builder ---
       const content = `
       <div class="lesson-modal-layout">
@@ -420,6 +465,10 @@ document.addEventListener("DOMContentLoaded", function () {
             <div class="form-group">
               <label for="lessonTitle">Lesson Title</label>
               <input type="text" id="lessonTitle" class="dialog-input" placeholder="e.g., Introduction to Budgeting" required />
+            </div>
+            <div class="form-group">
+              <label for="lessonDescription">Lesson Description</label>
+              <textarea id="lessonDescription" class="dialog-textarea" placeholder="Brief description of what students will learn..." rows="2"></textarea>
             </div>
 
             <!-- Introductory Content Blocks Section -->
@@ -439,6 +488,19 @@ document.addEventListener("DOMContentLoaded", function () {
               <div id="conditionsContainer"></div>
               <div class="block-controls">
                 <button type="button" id="addConditionBtn" class="btn btn-modal-action">+ Add Condition</button>
+                <button type="button" id="addTemplateBtn" class="btn btn-modal-action btn-secondary">+ Use Template</button>
+              </div>
+              <!-- Template Selection (hidden by default) -->
+              <div id="templateSelector" style="display: none; margin-top: 1em; background: rgba(0,0,0,0.2); padding: 1em; border-radius: 8px;">
+                <h6 class="dialog-section-title" style="color: #fff; margin-top: 0;">Common Teaching Scenarios</h6>
+                <select id="templateDropdown" class="dialog-input">
+                  <option value="">-- Select a teaching scenario --</option>
+                </select>
+                <div id="templateDescription" style="margin: 0.5em 0; color: #ccc; font-style: italic;"></div>
+                <div class="block-controls" style="justify-content: flex-end;">
+                  <button type="button" id="cancelTemplateBtn" class="btn btn-modal-action btn-secondary">Cancel</button>
+                  <button type="button" id="applyTemplateBtn" class="btn btn-modal-action" disabled>Apply Template</button>
+                </div>
               </div>
             </div>
           </form>
@@ -453,6 +515,19 @@ document.addEventListener("DOMContentLoaded", function () {
               </select>
             </div>
             <button type="button" id="createUnitBtn" class="btn btn-modal-action" style="width: 100%;">+ Create New Unit</button>
+            
+            <!-- Edit Lesson Block -->
+            <div class="lesson-builder-section" style="margin-top: 2em; padding-top: 1em; border-top: 1px solid rgba(255,255,255,0.2);">
+              <h6 class="dialog-section-title">Edit Existing Lesson</h6>
+              <div class="form-group">
+                <label for="editLessonSelector">Select Lesson to Edit</label>
+                <select id="editLessonSelector" class="dialog-input">
+                  <option value="">-- Select a lesson to edit --</option>
+                  <!-- Options will be populated dynamically -->
+                </select>
+              </div>
+              <button type="button" id="editLessonBtn" class="btn btn-modal-action" style="width: 100%;" disabled>Edit Selected Lesson</button>
+            </div>
             
             <!-- Form for creating a unit, hidden by default -->
             <div id="createUnitContainer" style="display: none; margin-top: 1em; background: rgba(0,0,0,0.2); padding: 1em; border-radius: 8px;">
@@ -475,6 +550,7 @@ document.addEventListener("DOMContentLoaded", function () {
           </div>
         </div>
         <div class="lesson-modal-footer">
+            <button type="button" id="debugLessonBtn" class="btn btn-modal-action" style="background-color: #ff9800;">Debug Lesson Data</button>
             <button type="button" id="uploadToWhirlpoolBtn" class="btn btn-modal-action">Upload to Whirlpool</button>
             <button type="submit" form="createLessonForm" id="saveLessonBtn" class="btn">Save Lesson</button>
         </div>
@@ -486,6 +562,9 @@ document.addEventListener("DOMContentLoaded", function () {
       dialogContent.innerHTML = content;
 
       populateUnitSelector();
+
+      // Populate edit lesson selector
+      populateEditLessonSelector();
 
       const introBlocksContainer = document.getElementById(
         "introBlocksContainer"
@@ -525,18 +604,114 @@ document.addEventListener("DOMContentLoaded", function () {
           <div class="form-group">
             <label>If</label>
             <select class="dialog-input condition-type">
-              <option value="bank_balance_above">Bank Balance Is Above</option>
-              <option value="elapsed_time">Time in Lesson (Seconds)</option>
-              <option value="quiz_score_below">Quiz Score Is Below</option>
+              <optgroup label="Account Balance Conditions">
+                <option value="bank_balance_above">Total Balance Is Above</option>
+                <option value="bank_balance_below">Total Balance Is Below</option>
+                <option value="checking_balance_above">Checking Balance Is Above</option>
+                <option value="checking_balance_below">Checking Balance Is Below</option>
+                <option value="savings_balance_above">Savings Balance Is Above</option>
+                <option value="savings_balance_below">Savings Balance Is Below</option>
+                <option value="balance_ratio_savings_above">Savings to Checking Ratio Above</option>
+              </optgroup>
+              <optgroup label="Transaction Activity">
+                <option value="transfer_completed">Student Completes a Transfer</option>
+                <option value="transfer_amount_above">Transfer Amount Is Above</option>
+                <option value="deposit_completed">Student Makes a Deposit</option>
+                <option value="deposit_amount_above">Deposit Amount Is Above</option>
+                <option value="money_sent">Student Sends Money to Peer</option>
+                <option value="money_received">Student Receives Money from Peer</option>
+                <option value="total_transactions_above">Total Transactions Above</option>
+              </optgroup>
+              <optgroup label="Bills & Budget Management">
+                <option value="bill_created">Student Creates a Bill</option>
+                <option value="payment_created">Student Creates a Payment/Income</option>
+                <option value="total_bills_above">Total Monthly Bills Above</option>
+                <option value="total_income_above">Total Monthly Income Above</option>
+                <option value="budget_negative">Budget Shows Negative (Spending > Income)</option>
+                <option value="budget_positive_above">Budget Surplus Above</option>
+                <option value="bills_count_above">Number of Bills Above</option>
+                <option value="income_count_above">Number of Income Sources Above</option>
+              </optgroup>
+              <optgroup label="Account Usage Patterns">
+                <option value="account_switched">Student Switches Between Accounts</option>
+                <option value="checking_used_more">Uses Checking More Than Savings</option>
+                <option value="savings_used_more">Uses Savings More Than Checking</option>
+                <option value="account_type_active">Currently Viewing Account Type</option>
+              </optgroup>
+              <optgroup label="Time & Engagement">
+                <option value="elapsed_time">Time in Lesson (Seconds)</option>
+                <option value="lesson_revisited">Student Returns to Lesson</option>
+                <option value="lesson_completion_trigger">Lesson Completion Trigger</option>
+              </optgroup>
+              <optgroup label="SMART Goals & Planning">
+                <option value="goal_set_specific">Student Sets Specific Goal</option>
+                <option value="goal_set_measurable">Student Sets Measurable Goal</option>
+                <option value="goal_has_deadline">Goal Has Time-bound Deadline</option>
+                <option value="goal_progress_tracked">Goal Progress Is Tracked</option>
+                <option value="smart_goal_completed">SMART Goal Fully Completed</option>
+                <option value="goal_savings_amount_set">Savings Goal Amount Set</option>
+                <option value="goal_timeline_realistic">Goal Timeline Is Realistic</option>
+                <option value="multiple_goals_active">Multiple Goals Are Active</option>
+              </optgroup>
+              <optgroup label="Social & Communication">
+                <option value="message_sent">Student Sends a Message</option>
+                <option value="message_received">Student Receives a Message</option>
+                <option value="classmate_interaction">Interacts with Specific Classmate</option>
+              </optgroup>
+              <optgroup label="Financial Literacy Behaviors">
+                <option value="loan_taken">Student Takes a Loan</option>
+                <option value="loan_amount_above">Loan Amount Above</option>
+                <option value="savings_goal_met">Achieves Savings Goal</option>
+                <option value="emergency_fund_built">Builds Emergency Fund (3+ months expenses)</option>
+                <option value="debt_to_income_high">Debt-to-Income Ratio Above</option>
+              </optgroup>
             </select>
             <input type="number" class="dialog-input condition-value" placeholder="Value" style="max-width: 100px;">
           </div>
           <div class="form-group">
             <label>Then</label>
             <select class="dialog-input action-type">
-              <option value="send_message">Send Message</option>
-              <option value="add_text_block">Add Text Block</option>
-              <option value="restart_student">Restart Student</option>
+              <optgroup label="Educational Actions">
+                <option value="send_message">Send Educational Message</option>
+                <option value="add_text_block">Add Text Block</option>
+                <option value="show_tip">Show Financial Tip</option>
+                <option value="highlight_feature">Highlight App Feature</option>
+                <option value="suggest_action">Suggest Next Action</option>
+              </optgroup>
+              <optgroup label="Interactive Challenges">
+                <option value="challenge_transfer">Challenge: Make a Transfer</option>
+                <option value="challenge_deposit">Challenge: Make a Deposit</option>
+                <option value="challenge_create_bill">Challenge: Set Up a Bill</option>
+                <option value="challenge_create_income">Challenge: Add Income Source</option>
+                <option value="challenge_save_amount">Challenge: Save Specific Amount</option>
+                <option value="challenge_send_money">Challenge: Send Money to Classmate</option>
+                <option value="challenge_budget_balance">Challenge: Balance Your Budget</option>
+              </optgroup>
+              <optgroup label="Account Actions">
+                <option value="force_account_switch">Force Switch to Account Type</option>
+                <option value="add_virtual_transaction">Add Virtual Transaction</option>
+                <option value="add_sample_bill">Add Sample Bill</option>
+                <option value="add_sample_income">Add Sample Income</option>
+              </optgroup>
+              <optgroup label="Feedback & Guidance">
+                <option value="praise_good_habit">Praise Financial Habit</option>
+                <option value="warn_poor_choice">Warn About Poor Choice</option>
+                <option value="explain_consequence">Explain Financial Consequence</option>
+                <option value="show_calculation">Show Budget Calculation</option>
+                <option value="compare_to_peers">Compare to Class Average</option>
+              </optgroup>
+              <optgroup label="SMART Goal Actions">
+                <option value="validate_smart_goal">Validate SMART Goal Criteria</option>
+                <option value="guide_goal_improvement">Guide Goal Improvement</option>
+                <option value="congratulate_smart_goal">Congratulate SMART Goal</option>
+              </optgroup>
+              <optgroup label="Lesson Flow">
+                <option value="restart_student">Restart Lesson</option>
+                <option value="advance_to_section">Advance to Lesson Section</option>
+                <option value="require_completion">Require Task Completion</option>
+                <option value="complete_lesson">Complete Lesson & Calculate Score</option>
+                <option value="unlock_feature">Unlock App Feature</option>
+              </optgroup>
             </select>
           </div>
           <div class="action-details"></div>
@@ -550,10 +725,400 @@ document.addEventListener("DOMContentLoaded", function () {
           .querySelector(".action-details");
         const actionType = actionSelect.value;
         let detailsHTML = "";
-        if (actionType === "send_message" || actionType === "add_text_block") {
-          detailsHTML = `<textarea class="dialog-textarea action-content" placeholder="Enter content for action..."></textarea>`;
+
+        switch (actionType) {
+          case "send_message":
+          case "add_text_block":
+          case "show_tip":
+          case "explain_consequence":
+          case "praise_good_habit":
+          case "warn_poor_choice":
+            detailsHTML = `<textarea class="dialog-textarea action-content" placeholder="Enter message content..."></textarea>`;
+            break;
+
+          case "highlight_feature":
+            detailsHTML = `
+              <select class="dialog-input action-content">
+                <option value="">Select feature to highlight</option>
+                <option value="transfer">Transfer Money</option>
+                <option value="bills">Bills & Payments</option>
+                <option value="deposit">Make Deposit</option>
+                <option value="send_money">Send Money</option>
+                <option value="account_switch">Switch Accounts</option>
+                <option value="budget_analysis">Budget Analysis</option>
+              </select>`;
+            break;
+
+          case "suggest_action":
+            detailsHTML = `
+              <select class="dialog-input action-content">
+                <option value="">Select suggested action</option>
+                <option value="make_transfer">Make a transfer to savings</option>
+                <option value="create_bill">Set up a recurring bill</option>
+                <option value="add_income">Add an income source</option>
+                <option value="check_budget">Review your budget</option>
+                <option value="save_more">Increase your savings</option>
+                <option value="reduce_spending">Look for ways to reduce spending</option>
+                <option value="send_money">Send money to a classmate</option>
+              </select>`;
+            break;
+
+          case "challenge_transfer":
+          case "challenge_save_amount":
+            detailsHTML = `
+              <input type="number" class="dialog-input action-amount" placeholder="Challenge amount" />
+              <select class="dialog-input action-content">
+                <option value="checking">To/From Checking</option>
+                <option value="savings">To/From Savings</option>
+                <option value="either">Either Account</option>
+              </select>`;
+            break;
+
+          case "challenge_deposit":
+            detailsHTML = `
+              <input type="number" class="dialog-input action-amount" placeholder="Minimum deposit amount" />
+              <input type="text" class="dialog-input action-content" placeholder="Payee/Source name (optional)" />`;
+            break;
+
+          case "challenge_create_bill":
+          case "challenge_create_income":
+            detailsHTML = `
+              <input type="text" class="dialog-input action-content" placeholder="Suggested bill/income name" />
+              <select class="dialog-input action-frequency">
+                <option value="">Any frequency</option>
+                <option value="weekly">Weekly</option>
+                <option value="bi-weekly">Bi-weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>`;
+            break;
+
+          case "challenge_send_money":
+            detailsHTML = `
+              <input type="number" class="dialog-input action-amount" placeholder="Amount to send" />
+              <input type="text" class="dialog-input action-content" placeholder="Specific classmate (optional)" />`;
+            break;
+
+          case "force_account_switch":
+            detailsHTML = `
+              <select class="dialog-input action-content">
+                <option value="checking">Switch to Checking</option>
+                <option value="savings">Switch to Savings</option>
+              </select>`;
+            break;
+
+          case "add_virtual_transaction":
+            detailsHTML = `
+              <input type="number" class="dialog-input action-amount" placeholder="Amount (negative for expense)" />
+              <input type="text" class="dialog-input action-content" placeholder="Transaction description" />
+              <select class="dialog-input action-frequency">
+                <option value="checking">Add to Checking</option>
+                <option value="savings">Add to Savings</option>
+              </select>`;
+            break;
+
+          case "add_sample_bill":
+            detailsHTML = `
+              <input type="text" class="dialog-input action-content" placeholder="Bill name (e.g., Electric Bill)" />
+              <input type="number" class="dialog-input action-amount" placeholder="Amount" />
+              <select class="dialog-input action-frequency">
+                <option value="monthly">Monthly</option>
+                <option value="weekly">Weekly</option>
+                <option value="bi-weekly">Bi-weekly</option>
+                <option value="yearly">Yearly</option>
+              </select>`;
+            break;
+
+          case "add_sample_income":
+            detailsHTML = `
+              <input type="text" class="dialog-input action-content" placeholder="Income name (e.g., Part-time Job)" />
+              <input type="number" class="dialog-input action-amount" placeholder="Amount" />
+              <select class="dialog-input action-frequency">
+                <option value="bi-weekly">Bi-weekly</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>`;
+            break;
+
+          case "show_calculation":
+            detailsHTML = `
+              <select class="dialog-input action-content">
+                <option value="budget_summary">Budget Summary (Income vs Expenses)</option>
+                <option value="savings_rate">Savings Rate Calculation</option>
+                <option value="debt_ratio">Debt-to-Income Ratio</option>
+                <option value="emergency_fund">Emergency Fund Progress</option>
+                <option value="account_growth">Account Balance Growth</option>
+              </select>`;
+            break;
+
+          case "compare_to_peers":
+            detailsHTML = `
+              <select class="dialog-input action-content">
+                <option value="savings_balance">Compare Savings Balance</option>
+                <option value="spending_habits">Compare Spending Habits</option>
+                <option value="income_sources">Compare Income Sources</option>
+                <option value="transfer_frequency">Compare Transfer Activity</option>
+                <option value="bill_management">Compare Bill Management</option>
+              </select>`;
+            break;
+
+          case "advance_to_section":
+            detailsHTML = `
+              <input type="text" class="dialog-input action-content" placeholder="Section name or number" />`;
+            break;
+
+          case "require_completion":
+            detailsHTML = `
+              <select class="dialog-input action-content">
+                <option value="make_transfer">Complete a transfer</option>
+                <option value="make_deposit">Complete a deposit</option>
+                <option value="create_bill">Set up a bill</option>
+                <option value="create_income">Add income source</option>
+                <option value="send_money">Send money to classmate</option>
+                <option value="switch_accounts">Switch between accounts</option>
+              </select>
+              <textarea class="dialog-textarea action-description" placeholder="Instructions for student..."></textarea>`;
+            break;
+
+          case "unlock_feature":
+            detailsHTML = `
+              <select class="dialog-input action-content">
+                <option value="peer_transfers">Peer-to-Peer Transfers</option>
+                <option value="advanced_budgeting">Advanced Budget Analysis</option>
+                <option value="loan_system">Loan System</option>
+              </select>
+              <textarea class="dialog-textarea action-description" placeholder="Unlock message for student..."></textarea>`;
+            break;
+
+          case "complete_lesson":
+            detailsHTML = `
+              <div class="lesson-completion-config">
+                <label>Completion Message:</label>
+                <textarea class="dialog-textarea action-content" placeholder="Congratulations message for student..."></textarea>
+                
+                <label>Scoring Configuration:</label>
+                <div class="scoring-options">
+                  <div class="score-setting">
+                    <label>Base Score:</label>
+                    <input type="number" class="dialog-input base-score" placeholder="85" min="50" max="100" value="85" />
+                    <small>Starting score before condition bonuses/penalties (50-100 range)</small>
+                  </div>
+                  
+                  <div class="score-setting">
+                    <label>Positive Condition Bonus:</label>
+                    <input type="number" class="dialog-input positive-bonus" placeholder="3" min="1" max="10" value="3" />
+                    <small>Points added for each positive condition met (max 10 per condition)</small>
+                  </div>
+                  
+                  <div class="score-setting">
+                    <label>Negative Condition Penalty:</label>
+                    <input type="number" class="dialog-input negative-penalty" placeholder="5" min="1" max="15" value="5" />
+                    <small>Points subtracted for each negative condition triggered (max 15 per condition)</small>
+                  </div>
+                  
+                  <div class="score-setting">
+                    <label>Activity Completion Weight:</label>
+                    <input type="number" class="dialog-input quiz-weight" placeholder="25" min="10" max="40" value="25" />
+                    <small>Percentage of final score from activity/quiz completion (10-40%)</small>
+                  </div>
+                  
+                  <div class="score-setting">
+                    <label>Grade Scale:</label>
+                    <select class="dialog-input grade-scale">
+                      <option value="standard">Standard (90-100=A, 80-89=B, 70-79=C, 60-69=D, <60=F)</option>
+                      <option value="plus-minus">Plus/Minus (A+ 97-100, A 93-96, A- 90-92, etc.)</option>
+                      <option value="custom">Custom Scale</option>
+                    </select>
+                    <small>High school grading scale for score interpretation</small>
+                  </div>
+                </div>
+              </div>`;
+            break;
+
+          case "validate_smart_goal":
+            detailsHTML = `
+              <select class="dialog-input action-content">
+                <option value="">Select SMART validation criteria</option>
+                <option value="specific">Check if goal is Specific</option>
+                <option value="measurable">Check if goal is Measurable</option>
+                <option value="achievable">Check if goal is Achievable</option>
+                <option value="relevant">Check if goal is Relevant</option>
+                <option value="timebound">Check if goal is Time-bound</option>
+                <option value="all_criteria">Validate all SMART criteria</option>
+              </select>
+              <textarea class="dialog-textarea action-description" placeholder="Message to show based on validation result..."></textarea>`;
+            break;
+
+          case "guide_goal_improvement":
+            detailsHTML = `
+              <textarea class="dialog-textarea action-content" placeholder="Guidance message for improving the goal..."></textarea>
+              <select class="dialog-input action-focus">
+                <option value="">Focus on specific SMART element</option>
+                <option value="specific">Help make goal more Specific</option>
+                <option value="measurable">Help make goal more Measurable</option>
+                <option value="achievable">Help make goal more Achievable</option>
+                <option value="relevant">Help make goal more Relevant</option>
+                <option value="timebound">Help add Time-bound deadline</option>
+              </select>`;
+            break;
+
+          case "congratulate_smart_goal":
+            detailsHTML = `
+              <textarea class="dialog-textarea action-content" placeholder="Congratulations message for setting a good SMART goal..."></textarea>`;
+            break;
+
+          default:
+            detailsHTML = "";
         }
+
         detailsContainer.innerHTML = detailsHTML;
+      };
+
+      // --- Conditional Templates for Common Teaching Scenarios ---
+      const getConditionalTemplates = () => {
+        return {
+          beginner_savings: {
+            name: "Beginner: Encourage Savings",
+            description: "Motivate students to transfer money to savings",
+            condition: { type: "savings_balance_below", value: 100 },
+            action: {
+              type: "challenge_transfer",
+              amount: 50,
+              content: "savings",
+            },
+          },
+          budget_awareness: {
+            name: "Budget Awareness: High Spending",
+            description: "Alert when students spend more than they earn",
+            condition: { type: "budget_negative", value: 0 },
+            action: {
+              type: "warn_poor_choice",
+              content:
+                "Your spending exceeds your income! This can lead to debt. Let's review your budget.",
+            },
+          },
+          emergency_fund: {
+            name: "Emergency Fund Goal",
+            description: "Guide students to build emergency savings",
+            condition: { type: "savings_balance_above", value: 500 },
+            action: {
+              type: "praise_good_habit",
+              content:
+                "Great job building your emergency fund! Financial experts recommend 3-6 months of expenses.",
+            },
+          },
+          bill_management: {
+            name: "Bill Management Training",
+            description: "Ensure students set up recurring bills",
+            condition: { type: "bills_count_above", value: 0 },
+            action: { type: "show_calculation", content: "budget_summary" },
+          },
+          peer_learning: {
+            name: "Peer Collaboration",
+            description: "Encourage students to send money to classmates",
+            condition: { type: "money_sent", value: 1 },
+            action: {
+              type: "add_text_block",
+              content:
+                "You've learned about peer-to-peer transfers! This is how services like Venmo and PayPal work.",
+            },
+          },
+          balanced_accounts: {
+            name: "Account Balance Training",
+            description: "Teach proper checking vs savings usage",
+            condition: { type: "checking_used_more", value: 1 },
+            action: { type: "suggest_action", content: "save_more" },
+          },
+          loan_awareness: {
+            name: "Loan Consequences",
+            description: "Educate about debt and interest",
+            condition: { type: "loan_taken", value: 1 },
+            action: {
+              type: "add_text_block",
+              content:
+                "Remember: loans must be repaid with interest. Only borrow what you can afford to repay!",
+            },
+          },
+          smart_goal_mastery: {
+            name: "SMART Goal Mastery Training",
+            description:
+              "Complete SMART goal setting and validation lesson with multiple checkpoints",
+            conditions: [
+              {
+                condition: { type: "goal_set_specific", value: 1 },
+                action: {
+                  type: "validate_smart_goal",
+                  content: "specific",
+                  description: "Checking if your goal is specific enough...",
+                },
+              },
+              {
+                condition: { type: "goal_set_measurable", value: 1 },
+                action: {
+                  type: "validate_smart_goal",
+                  content: "measurable",
+                  description:
+                    "Validating that your goal has measurable targets...",
+                },
+              },
+              {
+                condition: { type: "goal_has_deadline", value: 1 },
+                action: {
+                  type: "validate_smart_goal",
+                  content: "timebound",
+                  description:
+                    "Excellent! You've set a deadline for your goal.",
+                },
+              },
+              {
+                condition: { type: "goal_progress_tracked", value: 1 },
+                action: {
+                  type: "congratulate_smart_goal",
+                  content:
+                    "Great job tracking your progress! This shows commitment to achieving your goal.",
+                },
+              },
+              {
+                condition: { type: "goal_savings_amount_set", value: 1 },
+                action: {
+                  type: "validate_smart_goal",
+                  content: "all_criteria",
+                  description:
+                    "Analyzing your savings goal against all SMART criteria...",
+                },
+              },
+              {
+                condition: { type: "goal_timeline_realistic", value: 1 },
+                action: {
+                  type: "congratulate_smart_goal",
+                  content:
+                    "Your timeline appears realistic and achievable. Well planned!",
+                },
+              },
+              {
+                condition: { type: "smart_goal_completed", value: 1 },
+                action: {
+                  type: "complete_lesson",
+                  content:
+                    "🎉 Congratulations! You've mastered SMART goal setting! Your goals are Specific, Measurable, Achievable, Relevant, and Time-bound.",
+                  baseScore: 85,
+                  positiveBonus: 8,
+                  negativePenalty: 4,
+                  quizWeight: 25,
+                },
+              },
+              {
+                condition: { type: "multiple_goals_active", value: 1 },
+                action: {
+                  type: "congratulate_smart_goal",
+                  content:
+                    "Impressive! Managing multiple SMART goals shows advanced financial planning skills.",
+                },
+              },
+            ],
+          },
+        };
       };
 
       // --- Event Listeners ---
@@ -569,6 +1134,166 @@ document.addEventListener("DOMContentLoaded", function () {
       document
         .getElementById("addConditionBtn")
         .addEventListener("click", createCondition);
+
+      // --- Template Functionality ---
+      const templates = getConditionalTemplates();
+      const templateDropdown = document.getElementById("templateDropdown");
+      const templateDescription = document.getElementById(
+        "templateDescription"
+      );
+      const templateSelector = document.getElementById("templateSelector");
+
+      // Populate template dropdown
+      Object.keys(templates).forEach((key) => {
+        const option = document.createElement("option");
+        option.value = key;
+        option.textContent = templates[key].name;
+        templateDropdown.appendChild(option);
+      });
+
+      // Template button handlers
+      document
+        .getElementById("addTemplateBtn")
+        .addEventListener("click", () => {
+          templateSelector.style.display = "block";
+        });
+
+      document
+        .getElementById("cancelTemplateBtn")
+        .addEventListener("click", () => {
+          templateSelector.style.display = "none";
+          templateDropdown.value = "";
+          templateDescription.textContent = "";
+        });
+
+      templateDropdown.addEventListener("change", (e) => {
+        const selectedTemplate = templates[e.target.value];
+        if (selectedTemplate) {
+          templateDescription.textContent = selectedTemplate.description;
+          document.getElementById("applyTemplateBtn").disabled = false;
+        } else {
+          templateDescription.textContent = "";
+          document.getElementById("applyTemplateBtn").disabled = true;
+        }
+      });
+
+      document
+        .getElementById("applyTemplateBtn")
+        .addEventListener("click", () => {
+          const selectedTemplate = templates[templateDropdown.value];
+          if (selectedTemplate) {
+            // Check if this is a multi-condition template (like SMART goals)
+            if (
+              selectedTemplate.conditions &&
+              Array.isArray(selectedTemplate.conditions)
+            ) {
+              // Handle multi-condition template
+              selectedTemplate.conditions.forEach((conditionData, index) => {
+                createCondition();
+
+                // Get the newly created condition block (last one)
+                const conditionBlocks = document.querySelectorAll(
+                  "#conditionsContainer .condition-block"
+                );
+                const newBlock = conditionBlocks[conditionBlocks.length - 1];
+
+                // Populate the condition
+                const conditionSelect =
+                  newBlock.querySelector(".condition-type");
+                const conditionValue =
+                  newBlock.querySelector(".condition-value");
+                const actionSelect = newBlock.querySelector(".action-type");
+
+                conditionSelect.value = conditionData.condition.type;
+                conditionValue.value = conditionData.condition.value;
+                actionSelect.value = conditionData.action.type;
+
+                // Trigger the action details update
+                updateActionDetails(actionSelect);
+
+                // Populate action details with a slight delay for DOM updates
+                setTimeout(() => {
+                  const actionContent =
+                    newBlock.querySelector(".action-content");
+                  const actionAmount = newBlock.querySelector(".action-amount");
+                  const actionDescription = newBlock.querySelector(
+                    ".action-description"
+                  );
+                  const baseScore = newBlock.querySelector(".base-score");
+                  const positiveBonus =
+                    newBlock.querySelector(".positive-bonus");
+                  const negativePenalty =
+                    newBlock.querySelector(".negative-penalty");
+                  const quizWeight = newBlock.querySelector(".quiz-weight");
+
+                  if (actionContent && conditionData.action.content) {
+                    actionContent.value = conditionData.action.content;
+                  }
+                  if (actionAmount && conditionData.action.amount) {
+                    actionAmount.value = conditionData.action.amount;
+                  }
+                  if (actionDescription && conditionData.action.description) {
+                    actionDescription.value = conditionData.action.description;
+                  }
+
+                  // Handle lesson completion specific fields
+                  if (baseScore && conditionData.action.baseScore) {
+                    baseScore.value = conditionData.action.baseScore;
+                  }
+                  if (positiveBonus && conditionData.action.positiveBonus) {
+                    positiveBonus.value = conditionData.action.positiveBonus;
+                  }
+                  if (negativePenalty && conditionData.action.negativePenalty) {
+                    negativePenalty.value =
+                      conditionData.action.negativePenalty;
+                  }
+                  if (quizWeight && conditionData.action.quizWeight) {
+                    quizWeight.value = conditionData.action.quizWeight;
+                  }
+                }, 100 + index * 50); // Stagger the timeouts for multiple conditions
+              });
+            } else {
+              // Handle single-condition template (legacy format)
+              createCondition();
+
+              // Get the newly created condition block (last one)
+              const conditionBlocks = document.querySelectorAll(
+                "#conditionsContainer .condition-block"
+              );
+              const newBlock = conditionBlocks[conditionBlocks.length - 1];
+
+              // Populate the condition
+              const conditionSelect = newBlock.querySelector(".condition-type");
+              const conditionValue = newBlock.querySelector(".condition-value");
+              const actionSelect = newBlock.querySelector(".action-type");
+
+              conditionSelect.value = selectedTemplate.condition.type;
+              conditionValue.value = selectedTemplate.condition.value;
+              actionSelect.value = selectedTemplate.action.type;
+
+              // Trigger the action details update
+              updateActionDetails(actionSelect);
+
+              // Populate action details
+              setTimeout(() => {
+                const actionContent = newBlock.querySelector(".action-content");
+                const actionAmount = newBlock.querySelector(".action-amount");
+
+                if (actionContent && selectedTemplate.action.content) {
+                  actionContent.value = selectedTemplate.action.content;
+                }
+                if (actionAmount && selectedTemplate.action.amount) {
+                  actionAmount.value = selectedTemplate.action.amount;
+                }
+              }, 100);
+            }
+
+            // Hide template selector
+            templateSelector.style.display = "none";
+            templateDropdown.value = "";
+            templateDescription.textContent = "";
+          }
+        });
 
       // Define event handler functions to avoid duplicates
       function handleDialogClickForLessonCreation(e) {
@@ -638,10 +1363,16 @@ document.addEventListener("DOMContentLoaded", function () {
         .addEventListener("submit", async (e) => {
           e.preventDefault();
 
+          console.log("=== LESSON FORM SUBMISSION STARTED ===");
+          console.log("Form submitted, preventing default behavior");
+
           const unitSelector = document.getElementById("unitSelector");
           const selectedUnitValue = unitSelector.value;
 
+          console.log("Unit selector value:", selectedUnitValue);
+
           if (!selectedUnitValue) {
+            console.warn("No unit selected, aborting submission");
             alert("Please select a unit before saving the lesson.");
             return; // Prevent server call if no unit is selected
           }
@@ -649,27 +1380,46 @@ document.addEventListener("DOMContentLoaded", function () {
           const selectedUnitName =
             unitSelector.options[unitSelector.selectedIndex].text;
 
+          console.log("Selected unit name:", selectedUnitName);
+
           const lessonData = {
             lesson_title: document.getElementById("lessonTitle").value,
-            intro_text_blocks: [],
-            conditions: [],
+            lesson_description:
+              document.getElementById("lessonDescription")?.value || "",
+            lesson_blocks: [], // This will be the intro_text_blocks
+            lesson_conditions: [], // This will be the conditions
           };
 
+          console.log("Initial lesson data structure:", lessonData);
+
           // Collect intro blocks
-          document
-            .querySelectorAll("#introBlocksContainer .content-block")
-            .forEach((block) => {
-              const type = block.dataset.blockType;
-              const input = block.querySelector("input, textarea");
-              const blockData = { type };
-              if (type === "video") {
-                // Use the helper function to get a clean embed URL
-                blockData.url = getYoutubeEmbedUrl(input.value);
-              } else {
-                blockData.content = input.value;
-              }
-              lessonData.intro_text_blocks.push(blockData);
-            });
+          const introBlocks = document.querySelectorAll(
+            "#introBlocksContainer .content-block"
+          );
+          console.log("Found intro blocks:", introBlocks.length);
+
+          introBlocks.forEach((block, index) => {
+            console.log(`Processing intro block ${index + 1}:`, block);
+            const type = block.dataset.blockType;
+            const input = block.querySelector("input, textarea");
+            const blockData = { type };
+
+            console.log(`Block ${index + 1} type:`, type);
+            console.log(`Block ${index + 1} input element:`, input);
+
+            if (type === "video") {
+              // Use the helper function to get a clean embed URL
+              blockData.url = getYoutubeEmbedUrl(input.value);
+              console.log(`Block ${index + 1} video URL:`, blockData.url);
+            } else {
+              blockData.content = input.value;
+              console.log(`Block ${index + 1} content:`, blockData.content);
+            }
+            lessonData.lesson_blocks.push(blockData);
+          });
+
+          console.log("Intro blocks found:", introBlocks.length);
+          console.log("Lesson blocks collected:", lessonData.lesson_blocks);
 
           // Collect conditions
           document
@@ -684,7 +1434,16 @@ document.addEventListener("DOMContentLoaded", function () {
                   type: block.querySelector(".action-type").value,
                 },
               };
+
+              // Collect action content based on action type
               const actionContentEl = block.querySelector(".action-content");
+              const actionAmountEl = block.querySelector(".action-amount");
+              const actionFrequencyEl =
+                block.querySelector(".action-frequency");
+              const actionDescriptionEl = block.querySelector(
+                ".action-description"
+              );
+
               if (actionContentEl) {
                 if (condition.action.type === "add_text_block") {
                   condition.action.block = {
@@ -695,10 +1454,71 @@ document.addEventListener("DOMContentLoaded", function () {
                   condition.action.content = actionContentEl.value;
                 }
               }
-              lessonData.conditions.push(condition);
+
+              // Add additional parameters for complex actions
+              if (actionAmountEl && actionAmountEl.value) {
+                condition.action.amount = parseFloat(actionAmountEl.value);
+              }
+
+              if (actionFrequencyEl && actionFrequencyEl.value) {
+                condition.action.frequency = actionFrequencyEl.value;
+              }
+
+              if (actionDescriptionEl && actionDescriptionEl.value) {
+                condition.action.description = actionDescriptionEl.value;
+              }
+
+              // Add metadata for action categorization
+              const actionType = condition.action.type;
+              if (actionType.startsWith("challenge_")) {
+                condition.action.category = "challenge";
+                condition.action.challenge_type = actionType.replace(
+                  "challenge_",
+                  ""
+                );
+              } else if (
+                ["highlight_feature", "suggest_action", "show_tip"].includes(
+                  actionType
+                )
+              ) {
+                condition.action.category = "guidance";
+              } else if (
+                [
+                  "add_virtual_transaction",
+                  "add_sample_bill",
+                  "add_sample_income",
+                ].includes(actionType)
+              ) {
+                condition.action.category = "simulation";
+              } else if (
+                [
+                  "praise_good_habit",
+                  "warn_poor_choice",
+                  "explain_consequence",
+                ].includes(actionType)
+              ) {
+                condition.action.category = "feedback";
+              } else if (
+                [
+                  "require_completion",
+                  "unlock_feature",
+                  "advance_to_section",
+                ].includes(actionType)
+              ) {
+                condition.action.category = "progression";
+              }
+
+              lessonData.lesson_conditions.push(condition);
             });
 
+          console.log(
+            "Total conditions collected:",
+            lessonData.lesson_conditions.length
+          );
+          console.log("All lesson conditions:", lessonData.lesson_conditions);
+
           // Construct the final payload
+          console.log("Constructing final payload...");
           const parcel = {
             lesson: lessonData,
             unit: {
@@ -708,8 +1528,36 @@ document.addEventListener("DOMContentLoaded", function () {
             teacher: window.activeTeacherName,
           };
 
+          console.log("Final parcel structure:", parcel);
+          console.log("Teacher name:", window.activeTeacherName);
+          console.log("Unit details:", parcel.unit);
+          console.log("Lesson title:", parcel.lesson.lesson_title);
+
+          // Check if we're editing an existing lesson
+          const isEditing = window.editingLessonId;
+          if (isEditing) {
+            parcel.lessonId = window.editingLessonId;
+            console.log("=== UPDATING LESSON ===");
+            console.log("Editing Lesson ID:", window.editingLessonId);
+            console.log("Lesson Data being sent:", lessonData);
+            console.log("Full parcel being sent:", parcel);
+          } else {
+            console.log("=== CREATING NEW LESSON ===");
+            console.log("Lesson Data being sent:", lessonData);
+            console.log("Full parcel being sent:", parcel);
+          }
+
           try {
-            const response = await fetch(`https://tclessonserver-production.up.railway.app/save-lesson`, {
+            const endpoint = isEditing
+              ? https://tclessonserver-production.up.railway.app/update-lesson"
+              : https://tclessonserver-production.up.railway.app/save-lesson";
+
+            console.log(
+              `Making ${isEditing ? "UPDATE" : "CREATE"} request to:`,
+              endpoint
+            );
+
+            const response = await fetch(endpoint, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -717,31 +1565,79 @@ document.addEventListener("DOMContentLoaded", function () {
               body: JSON.stringify(parcel),
             });
 
+            console.log("Response status:", response.status);
+            console.log("Response ok:", response.ok);
+
             if (response.ok) {
               const result = await response.json();
-              console.log("Lesson saved successfully:", result);
+              console.log(
+                `Lesson ${isEditing ? "updated" : "saved"} successfully:`,
+                result
+              );
 
-              // Special message for master teacher
-              if (window.activeTeacherName === "admin@trinity-capital.net") {
+              if (isEditing) {
                 alert(
-                  "🎉 Master Teacher Lesson Created!\n\n" +
-                    "Your lesson has been saved and will now serve as DEFAULT CONTENT for all students and teachers in the system.\n\n" +
-                    "All other teachers will automatically inherit this lesson as part of their default curriculum."
+                  `Lesson "${lessonData.lesson_title}" updated successfully!`
                 );
+
+                // Reset editing state
+                window.editingLessonId = null;
+                const saveLessonBtn = document.getElementById("saveLessonBtn");
+                saveLessonBtn.textContent = "Save Lesson";
+
+                // Refresh lesson data
+                if (window.allTeacherLessons) {
+                  // Reload lesson data to get updated information
+                  loadTeacherLessons(window.activeTeacherName).then(() => {
+                    populateEditLessonSelector();
+                  });
+                }
               } else {
-                alert(
-                  "Lesson saved successfully! The server has logged the data."
-                );
+                // Special message for master teacher
+                if (window.activeTeacherName === "admin@trinity-capital.net") {
+                  alert(
+                    "🎉 Master Teacher Lesson Created!\n\n" +
+                      "Your lesson has been saved and will now serve as DEFAULT CONTENT for all students and teachers in the system.\n\n" +
+                      "All other teachers will automatically inherit this lesson as part of their default curriculum."
+                  );
+                } else {
+                  alert(
+                    "Lesson saved successfully! The server has logged the data."
+                  );
+                }
               }
               // window.closeGlobalDialog(); // You can uncomment this to close the dialog on save
             } else {
-              console.error("Failed to save lesson:", response.statusText);
-              alert(`Error: Failed to save lesson. Status: ${response.status}`);
+              console.error(
+                `Failed to ${isEditing ? "update" : "save"} lesson:`,
+                response.statusText
+              );
+
+              // Try to read error response body
+              try {
+                const errorData = await response.text();
+                console.error("Error response body:", errorData);
+              } catch (e) {
+                console.error("Could not read error response body:", e);
+              }
+
+              alert(
+                `Error: Failed to ${
+                  isEditing ? "update" : "save"
+                } lesson. Status: ${
+                  response.status
+                }\nCheck console for details.`
+              );
             }
           } catch (error) {
-            console.error("Error sending lesson data:", error);
+            console.error(
+              `Error ${isEditing ? "updating" : "sending"} lesson data:`,
+              error
+            );
             alert(
-              "An error occurred while saving the lesson. Check the console."
+              `An error occurred while ${
+                isEditing ? "updating" : "saving"
+              } the lesson. Check the console.`
             );
           }
         });
@@ -847,7 +1743,7 @@ document.addEventListener("DOMContentLoaded", function () {
           }
 
           // Save the custom unit to the server
-          fetch("https://tclessonserver-production.up.railway.app/create-custom-unit", {
+          fetch(https://tclessonserver-production.up.railway.app/create-custom-unit", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -965,7 +1861,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 try {
                   const response = await fetch(
-                    `https://tclessonserver-production.up.railway.app/assign-unit`,
+                    `http://localhost:4000/assign-unit`,
                     {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -1003,6 +1899,72 @@ document.addEventListener("DOMContentLoaded", function () {
             );
           }
         });
+
+      // Debug lesson data button
+      document
+        .getElementById("debugLessonBtn")
+        .addEventListener("click", async () => {
+          console.log("=== MANUAL LESSON DEBUG ===");
+
+          // Check form elements
+          const titleElement = document.getElementById("lessonTitle");
+          const descElement = document.getElementById("lessonDescription");
+          const unitElement = document.getElementById("unitSelector");
+
+          console.log("Form elements found:");
+          console.log("- Title element:", titleElement);
+          console.log("- Description element:", descElement);
+          console.log("- Unit selector element:", unitElement);
+
+          if (titleElement) console.log("- Title value:", titleElement.value);
+          if (descElement)
+            console.log("- Description value:", descElement.value);
+          if (unitElement) console.log("- Unit value:", unitElement.value);
+
+          // Check content blocks
+          const introBlocks = document.querySelectorAll(
+            "#introBlocksContainer .content-block"
+          );
+          const conditionBlocks = document.querySelectorAll(
+            "#conditionsContainer .condition-block"
+          );
+
+          console.log("Content blocks found:");
+          console.log("- Intro blocks:", introBlocks.length);
+          console.log("- Condition blocks:", conditionBlocks.length);
+
+          // Check active teacher
+          console.log("Active teacher:", window.activeTeacherName);
+
+          // Check if editing
+          console.log("Editing lesson ID:", window.editingLessonId);
+
+          if (window.editingLessonId) {
+            try {
+              const response = await fetch(
+                `http://localhost:4000/debug-lesson/${window.editingLessonId}`
+              );
+              const data = await response.json();
+
+              console.log("=== LESSON DEBUG DATA ===");
+              console.log("Lessons Collection:", data.lessonInLessons);
+              console.log("Teachers Collection:", data.lessonInTeachers);
+              console.log("Timestamp:", data.timestamp);
+
+              alert(
+                `Debug data logged to console. Check F12 -> Console for detailed lesson data comparison.`
+              );
+            } catch (error) {
+              console.error("Error debugging lesson:", error);
+              alert("Error fetching debug data. Check console for details.");
+            }
+          } else {
+            alert(
+              "Debug data logged to console. Check F12 -> Console for form state details."
+            );
+          }
+        });
+
       document
         .getElementById("uploadToWhirlpoolBtn")
         .addEventListener("click", async () => {
@@ -1019,8 +1981,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
           const lessonData = {
             lesson_title: document.getElementById("lessonTitle").value,
-            intro_text_blocks: [],
-            conditions: [],
+            lesson_description:
+              document.getElementById("lessonDescription")?.value || "",
+            lesson_blocks: [], // This will be the intro_text_blocks
+            lesson_conditions: [], // This will be the conditions
           };
 
           // Collect intro blocks
@@ -1035,7 +1999,7 @@ document.addEventListener("DOMContentLoaded", function () {
               } else {
                 blockData.content = input.value;
               }
-              lessonData.intro_text_blocks.push(blockData);
+              lessonData.lesson_blocks.push(blockData);
             });
 
           // Collect conditions
@@ -1062,7 +2026,7 @@ document.addEventListener("DOMContentLoaded", function () {
                   condition.action.content = actionContentEl.value;
                 }
               }
-              lessonData.conditions.push(condition);
+              lessonData.lesson_conditions.push(condition);
             });
 
           // Construct the final payload
@@ -1077,7 +2041,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
           try {
             const response = await fetch(
-              `https://tclessonserver-production.up.railway.app/upload-whirlpool`,
+              `http://localhost:4000/upload-whirlpool`,
               {
                 method: "POST",
                 headers: {
@@ -1109,7 +2073,429 @@ document.addEventListener("DOMContentLoaded", function () {
             );
           }
         });
+
+      // Function to populate edit lesson selector
+      function populateEditLessonSelector() {
+        const editLessonSelector =
+          document.getElementById("editLessonSelector");
+        editLessonSelector.innerHTML =
+          '<option value="">-- Select a lesson to edit --</option>';
+
+        if (window.allTeacherLessons && window.allTeacherLessons.length > 0) {
+          window.allTeacherLessons.forEach((lesson) => {
+            const option = document.createElement("option");
+            option.value = lesson._id;
+            option.textContent = `${lesson.lesson_title} (${
+              lesson.teacher || "Unknown"
+            })`;
+            editLessonSelector.appendChild(option);
+          });
+        }
+      }
+
+      // Function to populate lesson data into the form for editing
+      function populateLessonForEditing(lesson) {
+        console.log("=== POPULATING LESSON FOR EDITING ===");
+        console.log("Lesson object received:", lesson);
+        console.log("Lesson blocks:", lesson.lesson_blocks);
+        console.log("Lesson conditions:", lesson.lesson_conditions);
+
+        // Set lesson title
+        document.getElementById("lessonTitle").value =
+          lesson.lesson_title || "";
+
+        // Set lesson description
+        document.getElementById("lessonDescription").value =
+          lesson.lesson_description || "";
+
+        // Clear existing blocks
+        const introBlocksContainer = document.getElementById(
+          "introBlocksContainer"
+        );
+        const conditionsContainer = document.getElementById(
+          "conditionsContainer"
+        );
+        introBlocksContainer.innerHTML = "";
+        conditionsContainer.innerHTML = "";
+
+        // Populate intro blocks
+        if (lesson.lesson_blocks && lesson.lesson_blocks.length > 0) {
+          console.log(
+            "Found lesson blocks, populating:",
+            lesson.lesson_blocks.length
+          );
+          lesson.lesson_blocks.forEach((blockData, index) => {
+            console.log(`Block ${index}:`, blockData);
+            const block = document.createElement("div");
+            block.className = "content-block";
+            block.dataset.blockType = blockData.type;
+
+            let innerHTML = `<button type="button" class="remove-btn">&times;</button>`;
+
+            switch (blockData.type) {
+              case "header":
+                innerHTML += `<label>Header</label><input type="text" class="dialog-input" placeholder="Enter header text..." value="${
+                  blockData.content || ""
+                }">`;
+                break;
+              case "text":
+                innerHTML += `<label>Text Block</label><textarea class="dialog-textarea" placeholder="Enter paragraph text...">${
+                  blockData.content || ""
+                }</textarea>`;
+                break;
+              case "video":
+                innerHTML += `<label>Video URL or YouTube Embed</label><input type="text" class="dialog-input video-url-input" placeholder="e.g., https://www.youtube.com/watch?v=... or .mp4 URL" value="${
+                  blockData.url || ""
+                }">
+                <div class="video-preview-container" style="margin-top: 0.5em; display: none;"></div>`;
+                break;
+            }
+
+            block.innerHTML = innerHTML;
+            introBlocksContainer.appendChild(block);
+
+            // If it's a video block, trigger preview update
+            if (blockData.type === "video" && blockData.url) {
+              const input = block.querySelector(".video-url-input");
+              const previewContainer = block.querySelector(
+                ".video-preview-container"
+              );
+              const embedUrl = getYoutubeEmbedUrl(blockData.url);
+
+              if (embedUrl) {
+                previewContainer.style.display = "block";
+                if (embedUrl.includes("youtube.com/embed")) {
+                  previewContainer.innerHTML = `<iframe width="100%" height="150" src="${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius: 8px;"></iframe>`;
+                } else {
+                  previewContainer.innerHTML = `<video width="100%" height="150" controls src="${embedUrl}" style="border-radius: 8px;"></video>`;
+                }
+              }
+            }
+          });
+        } else {
+          console.log(
+            "No lesson_blocks found, checking alternative field names..."
+          );
+          console.log("intro_text_blocks:", lesson.intro_text_blocks);
+
+          // Fallback: check if data is stored under old field names
+          if (lesson.intro_text_blocks && lesson.intro_text_blocks.length > 0) {
+            console.log("Found intro_text_blocks, using those instead");
+            lesson.intro_text_blocks.forEach((blockData, index) => {
+              console.log(`Legacy block ${index}:`, blockData);
+              const block = document.createElement("div");
+              block.className = "content-block";
+              block.dataset.blockType = blockData.type;
+
+              let innerHTML = `<button type="button" class="remove-btn">&times;</button>`;
+
+              switch (blockData.type) {
+                case "header":
+                  innerHTML += `<label>Header</label><input type="text" class="dialog-input" placeholder="Enter header text..." value="${
+                    blockData.content || ""
+                  }">`;
+                  break;
+                case "text":
+                  innerHTML += `<label>Text Block</label><textarea class="dialog-textarea" placeholder="Enter paragraph text...">${
+                    blockData.content || ""
+                  }</textarea>`;
+                  break;
+                case "video":
+                  innerHTML += `<label>Video URL or YouTube Embed</label><input type="text" class="dialog-input video-url-input" placeholder="e.g., https://www.youtube.com/watch?v=... or .mp4 URL" value="${
+                    blockData.url || ""
+                  }">
+                  <div class="video-preview-container" style="margin-top: 0.5em; display: none;"></div>`;
+                  break;
+              }
+
+              block.innerHTML = innerHTML;
+              introBlocksContainer.appendChild(block);
+
+              // If it's a video block, trigger preview update
+              if (blockData.type === "video" && blockData.url) {
+                const input = block.querySelector(".video-url-input");
+                const previewContainer = block.querySelector(
+                  ".video-preview-container"
+                );
+                const embedUrl = getYoutubeEmbedUrl(blockData.url);
+
+                if (embedUrl) {
+                  previewContainer.style.display = "block";
+                  if (embedUrl.includes("youtube.com/embed")) {
+                    previewContainer.innerHTML = `<iframe width="100%" height="150" src="${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius: 8px;"></iframe>`;
+                  } else {
+                    previewContainer.innerHTML = `<video width="100%" height="150" controls src="${embedUrl}" style="border-radius: 8px;"></video>`;
+                  }
+                }
+              }
+            });
+          }
+        }
+
+        // Populate conditions
+        if (lesson.lesson_conditions && lesson.lesson_conditions.length > 0) {
+          console.log(
+            "Found lesson_conditions, populating:",
+            lesson.lesson_conditions.length
+          );
+          lesson.lesson_conditions.forEach((conditionData) => {
+            const condition = document.createElement("div");
+            condition.className = "condition-block";
+            condition.innerHTML = `
+              <button type="button" class="remove-btn">&times;</button>
+              <div class="form-group">
+                <label>If</label>
+                <select class="dialog-input condition-type">
+                  <option value="bank_balance_above" ${
+                    conditionData.condition_type === "bank_balance_above"
+                      ? "selected"
+                      : ""
+                  }>Bank Balance Is Above</option>
+                  <option value="elapsed_time" ${
+                    conditionData.condition_type === "elapsed_time"
+                      ? "selected"
+                      : ""
+                  }>Time in Lesson (Seconds)</option>
+                  <option value="quiz_score_below" ${
+                    conditionData.condition_type === "quiz_score_below"
+                      ? "selected"
+                      : ""
+                  }>Quiz Score Is Below</option>
+                </select>
+                <input type="number" class="dialog-input condition-value" placeholder="Value" style="max-width: 100px;" value="${
+                  conditionData.value || ""
+                }">
+              </div>
+              <div class="form-group">
+                <label>Then</label>
+                <select class="dialog-input action-type">
+                  <option value="send_message" ${
+                    conditionData.action?.type === "send_message"
+                      ? "selected"
+                      : ""
+                  }>Send Message</option>
+                  <option value="add_text_block" ${
+                    conditionData.action?.type === "add_text_block"
+                      ? "selected"
+                      : ""
+                  }>Add Text Block</option>
+                  <option value="restart_student" ${
+                    conditionData.action?.type === "restart_student"
+                      ? "selected"
+                      : ""
+                  }>Restart Student</option>
+                </select>
+              </div>
+              <div class="action-details"></div>
+            `;
+            conditionsContainer.appendChild(condition);
+
+            // Populate action details
+            const actionSelect = condition.querySelector(".action-type");
+            const detailsContainer = condition.querySelector(".action-details");
+            const actionType = conditionData.action?.type;
+
+            if (
+              actionType === "send_message" ||
+              actionType === "add_text_block"
+            ) {
+              let content = "";
+              if (actionType === "send_message") {
+                content = conditionData.action?.content || "";
+              } else if (actionType === "add_text_block") {
+                content = conditionData.action?.block?.content || "";
+              }
+              detailsContainer.innerHTML = `<textarea class="dialog-textarea action-content" placeholder="Enter content for action...">${content}</textarea>`;
+            }
+          });
+        } else {
+          console.log(
+            "No lesson_conditions found, checking alternative field names..."
+          );
+          console.log("conditions:", lesson.conditions);
+
+          // Fallback: check if data is stored under old field names
+          if (lesson.conditions && lesson.conditions.length > 0) {
+            console.log("Found legacy conditions, using those instead");
+            lesson.conditions.forEach((conditionData) => {
+              const condition = document.createElement("div");
+              condition.className = "condition-block";
+              condition.innerHTML = `
+                <button type="button" class="remove-btn">&times;</button>
+                <div class="form-group">
+                  <label>If</label>
+                  <select class="dialog-input condition-type">
+                    <option value="bank_balance_above" ${
+                      conditionData.condition_type === "bank_balance_above"
+                        ? "selected"
+                        : ""
+                    }>Bank Balance Is Above</option>
+                    <option value="elapsed_time" ${
+                      conditionData.condition_type === "elapsed_time"
+                        ? "selected"
+                        : ""
+                    }>Time in Lesson (Seconds)</option>
+                    <option value="quiz_score_below" ${
+                      conditionData.condition_type === "quiz_score_below"
+                        ? "selected"
+                        : ""
+                    }>Quiz Score Is Below</option>
+                  </select>
+                  <input type="number" class="dialog-input condition-value" placeholder="Value" style="max-width: 100px;" value="${
+                    conditionData.value || ""
+                  }">
+                </div>
+                <div class="form-group">
+                  <label>Then</label>
+                  <select class="dialog-input action-type">
+                    <option value="send_message" ${
+                      conditionData.action?.type === "send_message"
+                        ? "selected"
+                        : ""
+                    }>Send Message</option>
+                    <option value="add_text_block" ${
+                      conditionData.action?.type === "add_text_block"
+                        ? "selected"
+                        : ""
+                    }>Add Text Block</option>
+                    <option value="restart_student" ${
+                      conditionData.action?.type === "restart_student"
+                        ? "selected"
+                        : ""
+                    }>Restart Student</option>
+                  </select>
+                </div>
+                <div class="action-details"></div>
+              `;
+              conditionsContainer.appendChild(condition);
+
+              // Populate action details
+              const actionSelect = condition.querySelector(".action-type");
+              const detailsContainer =
+                condition.querySelector(".action-details");
+              const actionType = conditionData.action?.type;
+
+              if (
+                actionType === "send_message" ||
+                actionType === "add_text_block"
+              ) {
+                let content = "";
+                if (actionType === "send_message") {
+                  content = conditionData.action?.content || "";
+                } else if (actionType === "add_text_block") {
+                  content = conditionData.action?.block?.content || "";
+                }
+                detailsContainer.innerHTML = `<textarea class="dialog-textarea action-content" placeholder="Enter content for action...">${content}</textarea>`;
+              }
+            });
+          }
+        }
+      }
+
+      // Edit lesson selector change handler
+      document
+        .getElementById("editLessonSelector")
+        .addEventListener("change", function () {
+          const editLessonBtn = document.getElementById("editLessonBtn");
+          editLessonBtn.disabled = !this.value;
+        });
+
+      // Edit lesson button handler
+      document
+        .getElementById("editLessonBtn")
+        .addEventListener("click", function () {
+          const selectedLessonId =
+            document.getElementById("editLessonSelector").value;
+
+          if (!selectedLessonId) {
+            alert("Please select a lesson to edit.");
+            return;
+          }
+
+          // Find the selected lesson
+          const lessonToEdit = window.allTeacherLessons.find(
+            (lesson) => lesson._id === selectedLessonId
+          );
+
+          console.log("=== LESSON EDITING DEBUG ===");
+          console.log("Selected lesson ID:", selectedLessonId);
+          console.log("All teacher lessons:", window.allTeacherLessons);
+          console.log("Found lesson to edit:", lessonToEdit);
+
+          if (!lessonToEdit) {
+            alert("Selected lesson not found.");
+            return;
+          }
+
+          // Populate the form with lesson data
+          populateLessonForEditing(lessonToEdit);
+
+          // Store the lesson ID for saving
+          window.editingLessonId = selectedLessonId;
+
+          // Update the save button text to indicate editing mode
+          const saveLessonBtn = document.getElementById("saveLessonBtn");
+          saveLessonBtn.textContent = "Update Lesson";
+
+          // Show confirmation
+          alert(
+            `Lesson "${lessonToEdit.lesson_title}" loaded for editing. Make your changes and click "Update Lesson" to save.`
+          );
+        });
     });
+
+  // Global event handler function for lesson management modal - defined outside to prevent duplicates
+  function handleLessonManagementDialogClick(e) {
+    if (e.target.classList.contains("remove-lesson-btn")) {
+      const lessonItem = e.target.closest("li");
+      const unitCard = lessonItem.closest(".assigned-unit-card");
+      const unitValue = unitCard.getAttribute("data-unit-value");
+
+      if (lessonItem && unitValue) {
+        // Initialize pending changes for this unit if not exists
+        if (!window.pendingLessonChanges.has(unitValue)) {
+          const unit = window.teacherUnits.find((u) => u.value === unitValue);
+          if (unit && unit.lessons) {
+            window.pendingLessonChanges.set(unitValue, {
+              originalLessons: JSON.parse(JSON.stringify(unit.lessons)), // Deep copy
+              pendingLessons: JSON.parse(JSON.stringify(unit.lessons)), // Deep copy
+            });
+          }
+        }
+
+        // Get the lesson position in the DOM
+        const lessonItems = unitCard.querySelectorAll("li[data-lesson-id]");
+        const lessonIndex = Array.from(lessonItems).indexOf(lessonItem);
+
+        // Update pending changes tracking
+        const pendingData = window.pendingLessonChanges.get(unitValue);
+        if (pendingData && lessonIndex >= 0) {
+          pendingData.pendingLessons.splice(lessonIndex, 1);
+          console.log(
+            `Removed lesson at index ${lessonIndex} from pending changes`
+          );
+        }
+
+        // Remove from DOM
+        lessonItem.remove();
+        console.log("Lesson item removed from view.");
+
+        // Show visual indicator that there are unsaved changes
+        const saveButton = unitCard.querySelector(".save-unit-btn");
+        if (saveButton && !saveButton.disabled) {
+          saveButton.style.backgroundColor = "#ff6b35";
+          saveButton.textContent = "Save Changes (Unsaved)";
+          saveButton.style.animation = "pulse 1s infinite";
+        }
+      }
+    } else if (e.target.classList.contains("replace-lesson-btn")) {
+      handleLessonReplace(e.target);
+    } else if (e.target.classList.contains("save-unit-btn")) {
+      handleSaveUnit(e.target);
+    } else if (e.target.classList.contains("copy-unit-btn")) {
+      handleCopyDefaultUnit(e.target);
+    }
+  }
 
   document
     .getElementById("lessonManagementBtn")
@@ -1142,6 +2528,12 @@ document.addEventListener("DOMContentLoaded", function () {
               opacity: 1;
               transform: translateY(0);
             }
+          }
+          
+          @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
           }
           
           /* Enhanced optgroup styling */
@@ -1204,6 +2596,14 @@ document.addEventListener("DOMContentLoaded", function () {
       `;
       window.openGlobalDialog("Lesson Management", "");
       document.getElementById("dialogContent").innerHTML = content;
+
+      // Initialize pending changes tracking
+      if (!window.pendingLessonChanges) {
+        window.pendingLessonChanges = new Map();
+      } else {
+        // Clear any existing pending changes when opening the modal fresh
+        window.pendingLessonChanges.clear();
+      }
 
       // Join the lesson management room for real-time updates
       if (window.activeTeacherName) {
@@ -1292,26 +2692,18 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       // Define the event handler function once to avoid duplicates
-      function handleDialogClick(e) {
-        if (e.target.classList.contains("remove-lesson-btn")) {
-          const lessonItem = e.target.closest("li");
-          if (lessonItem) {
-            lessonItem.remove();
-            console.log("Lesson item removed from view.");
-          }
-        } else if (e.target.classList.contains("replace-lesson-btn")) {
-          handleLessonReplace(e.target);
-        } else if (e.target.classList.contains("save-unit-btn")) {
-          handleSaveUnit(e.target);
-        } else if (e.target.classList.contains("copy-unit-btn")) {
-          handleCopyDefaultUnit(e.target);
-        }
-      }
+      // Note: Now using the global function defined outside this click handler
 
       // Remove any existing event listeners before adding new ones to prevent duplicates
       const dialogContent = document.getElementById("dialogContent");
-      dialogContent.removeEventListener("click", handleDialogClick);
-      dialogContent.addEventListener("click", handleDialogClick);
+      dialogContent.removeEventListener(
+        "click",
+        handleLessonManagementDialogClick
+      );
+      dialogContent.addEventListener(
+        "click",
+        handleLessonManagementDialogClick
+      );
 
       // Handle lesson assignment to units
       document
@@ -1403,7 +2795,7 @@ document.addEventListener("DOMContentLoaded", function () {
           }
 
           try {
-            const response = await fetch(`https://tclessonserver-production.up.railway.app/assign-unit`, {
+            const response = await fetch(`http://localhost:4000/assign-unit`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -1438,183 +2830,206 @@ document.addEventListener("DOMContentLoaded", function () {
             );
           }
         });
-
-      // Function to handle lesson replacement
-      async function handleLessonReplace(replaceButton) {
-        const masterLessonSelect =
-          document.getElementById("masterLessonSelect");
-        const selectedLessonId = masterLessonSelect.value;
-
-        if (!selectedLessonId) {
-          alert(
-            "Please select a lesson from the 'All Available Lessons' dropdown first."
-          );
-          return;
-        }
-
-        const selectedLessonText =
-          masterLessonSelect.options[masterLessonSelect.selectedIndex].text;
-        const lessonItem = replaceButton.closest("li");
-        const lessonSpan = lessonItem.querySelector("span");
-        const currentLessonText = lessonSpan.textContent;
-
-        // Get the lesson ID and unit value from data attributes
-        const oldLessonId = lessonItem.getAttribute("data-lesson-id");
-        const unitCard = lessonItem.closest(".assigned-unit-card");
-        const unitValue = unitCard.getAttribute("data-unit-value");
-
-        // Debug logging
-        console.log("Debug - Replace lesson data:");
-        console.log("Lesson item clicked:", lessonItem);
-        console.log(
-          "Full lesson data:",
-          JSON.stringify(lessonItem.dataset, null, 2)
-        );
-        console.log("Unit card:", unitCard);
-        console.log(
-          "Full unit data:",
-          JSON.stringify(unitCard.dataset, null, 2)
-        );
-        console.log("oldLessonId:", oldLessonId, "type:", typeof oldLessonId);
-        console.log("unitValue:", unitValue, "type:", typeof unitValue);
-        console.log(
-          "selectedLessonId:",
-          selectedLessonId,
-          "type:",
-          typeof selectedLessonId
-        );
-
-        if (!oldLessonId || !unitValue) {
-          console.error(
-            "Missing IDs - oldLessonId:",
-            oldLessonId,
-            "unitValue:",
-            unitValue
-          );
-          console.error("Unit card dataset:", unitCard.dataset);
-          console.error("Lesson item dataset:", lessonItem.dataset);
-          alert(
-            "Unable to find the lesson to replace. The data structure is missing required IDs. Please check the lesson server data format."
-          );
-          return;
-        }
-
-        // Confirm the replacement
-        const confirmReplace = confirm(
-          `Are you sure you want to replace "${currentLessonText}" with "${selectedLessonText}"?`
-        );
-
-        if (!confirmReplace) {
-          return;
-        }
-
-        try {
-          // Show loading state
-          replaceButton.disabled = true;
-          replaceButton.textContent = "Replacing...";
-
-          // Debug the request payload
-          const requestPayload = {
-            teacherName: window.activeTeacherName,
-            unitValue: unitValue,
-            oldLessonId: oldLessonId,
-            newLessonId: selectedLessonId,
-          };
-          console.log("Debug - Request payload:", requestPayload);
-
-          // Send the replacement request to the server
-          const response = await fetch(`${API_BASE_URL}/replaceLessonInUnit`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(requestPayload),
-          });
-
-          const result = await response.json();
-
-          if (response.ok && result.success) {
-            // Update the UI to show the new lesson
-            lessonSpan.textContent = `Lesson: ${selectedLessonText}`;
-            lessonItem.setAttribute("data-lesson-id", selectedLessonId);
-
-            // Update the local teacherUnits data
-            if (window.teacherUnits && Array.isArray(window.teacherUnits)) {
-              const unit = window.teacherUnits.find(
-                (u) => u.value === unitValue
-              );
-              if (unit && unit.lessons) {
-                const lessonIndex = unit.lessons.findIndex(
-                  (l) => l._id === oldLessonId
-                );
-                if (lessonIndex !== -1) {
-                  // Find the new lesson data from allTeacherLessons
-                  const newLessonData = window.allTeacherLessons.find(
-                    (l) => l._id === selectedLessonId
-                  );
-                  if (newLessonData) {
-                    unit.lessons[lessonIndex] = {
-                      _id: selectedLessonId,
-                      lesson_title: newLessonData.lesson_title,
-                      intro_text_blocks: newLessonData.intro_text_blocks,
-                      conditions: newLessonData.conditions,
-                    };
-                  }
-                }
-              }
-            }
-
-            alert(`Lesson replaced successfully with "${selectedLessonText}"`);
-
-            // Reset the dropdown
-            masterLessonSelect.selectedIndex = 0;
-          } else {
-            alert(`Error: ${result.message || "Failed to replace lesson"}`);
-          }
-        } catch (error) {
-          console.error("Error replacing lesson:", error);
-          alert(
-            "An error occurred while replacing the lesson. Please try again."
-          );
-        } finally {
-          // Reset button state
-          replaceButton.disabled = false;
-          replaceButton.textContent = "Replace";
-        }
-      }
     });
 
-  // Handle saving unit changes
-  async function handleSaveUnit(saveButton) {
-    console.log("=== HANDLE SAVE UNIT START ===");
-    console.log("Save button clicked:", saveButton);
-    console.log("window.teacherUnits:", window.teacherUnits);
-    console.log("window.allTeacherLessons:", window.allTeacherLessons);
-    console.log("window.activeTeacherName:", window.activeTeacherName);
+  // Initialize pending changes tracking
+  if (!window.pendingLessonChanges) {
+    window.pendingLessonChanges = new Map(); // unitValue -> { originalLessons: [], pendingLessons: [] }
+  }
 
-    const unitCard = saveButton.closest(".assigned-unit-card");
-    if (!unitCard) {
-      console.error("Could not find assigned-unit-card ancestor");
-      alert("Unable to find unit information. Please try again.");
+  // Function to handle lesson replacement - moved outside lesson management handler to prevent scope issues
+  function handleLessonReplace(replaceButton) {
+    const masterLessonSelect = document.getElementById("masterLessonSelect");
+    const selectedLessonId = masterLessonSelect.value;
+
+    if (!selectedLessonId) {
+      alert(
+        "Please select a lesson from the 'All Available Lessons' dropdown first."
+      );
       return;
     }
 
+    const selectedLessonText =
+      masterLessonSelect.options[masterLessonSelect.selectedIndex].text;
+    const lessonItem = replaceButton.closest("li");
+    const lessonSpan = lessonItem.querySelector("span");
+    const currentLessonText = lessonSpan.textContent;
+
+    // Get the lesson ID and unit value from data attributes
+    const currentLessonId = lessonItem.getAttribute("data-lesson-id");
+    const unitCard = lessonItem.closest(".assigned-unit-card");
     const unitValue = unitCard.getAttribute("data-unit-value");
-    console.log("Unit card found:", unitCard);
-    console.log("Unit value from data attribute:", unitValue);
-    console.log("All data attributes on unit card:", unitCard.dataset);
 
-    if (!unitValue) {
-      console.error("Unit card HTML:", unitCard.outerHTML);
-      alert("Unable to find unit identifier. Please try again.");
+    // Debug logging
+    console.log("Debug - Replace lesson data:");
+    console.log("Lesson item clicked:", lessonItem);
+    console.log(
+      "currentLessonId:",
+      currentLessonId,
+      "type:",
+      typeof currentLessonId
+    );
+    console.log("unitValue:", unitValue, "type:", typeof unitValue);
+    console.log(
+      "selectedLessonId:",
+      selectedLessonId,
+      "type:",
+      typeof selectedLessonId
+    );
+
+    if (!currentLessonId || !unitValue) {
+      console.error(
+        "Missing IDs - currentLessonId:",
+        currentLessonId,
+        "unitValue:",
+        unitValue
+      );
+      alert(
+        "Unable to find the lesson to replace. The data structure is missing required IDs. Please check the lesson server data format."
+      );
       return;
     }
 
-    // Extract lessons from the unit card
+    // Confirm the replacement
+    const confirmReplace = confirm(
+      `Are you sure you want to replace "${currentLessonText}" with "${selectedLessonText}"?`
+    );
+
+    if (!confirmReplace) {
+      return;
+    }
+
+    // Initialize pending changes for this unit if not exists
+    if (!window.pendingLessonChanges.has(unitValue)) {
+      const unit = window.teacherUnits.find((u) => u.value === unitValue);
+      if (unit && unit.lessons) {
+        window.pendingLessonChanges.set(unitValue, {
+          originalLessons: JSON.parse(JSON.stringify(unit.lessons)), // Deep copy
+          pendingLessons: JSON.parse(JSON.stringify(unit.lessons)), // Deep copy
+        });
+      }
+    }
+
+    // Get the new lesson data from allTeacherLessons
+    const newLessonData = window.allTeacherLessons.find(
+      (l) => l._id === selectedLessonId
+    );
+
+    if (!newLessonData) {
+      alert("Unable to find the selected lesson data. Please try again.");
+      return;
+    }
+
+    // Update the UI to show the new lesson
+    lessonSpan.textContent = `Lesson: ${selectedLessonText}`;
+    lessonItem.setAttribute("data-lesson-id", selectedLessonId);
+
+    // Mark this lesson item as changed
+    lessonItem.setAttribute("data-changed", "true");
+    lessonItem.style.backgroundColor = "rgba(255, 193, 7, 0.2)"; // Yellow highlight
+    lessonItem.style.border = "1px solid rgba(255, 193, 7, 0.5)";
+
+    // Update pending changes tracking
+    const pendingData = window.pendingLessonChanges.get(unitValue);
+    if (pendingData) {
+      // Find the lesson position in the lessons array by matching the current position in the DOM
+      const lessonItems = unitCard.querySelectorAll("li[data-lesson-id]");
+      const lessonIndex = Array.from(lessonItems).indexOf(lessonItem);
+
+      if (lessonIndex >= 0 && lessonIndex < pendingData.pendingLessons.length) {
+        // Replace the lesson at this specific index
+        pendingData.pendingLessons[lessonIndex] = {
+          _id: selectedLessonId,
+          lesson_title: newLessonData.lesson_title,
+          intro_text_blocks: newLessonData.intro_text_blocks,
+          conditions: newLessonData.conditions,
+        };
+
+        console.log(
+          `Updated pending lesson at index ${lessonIndex}:`,
+          pendingData.pendingLessons[lessonIndex]
+        );
+      }
+    }
+
+    // Show visual indicator that there are unsaved changes
+    const saveButton = unitCard.querySelector(".save-unit-btn");
+    if (saveButton && !saveButton.disabled) {
+      saveButton.style.backgroundColor = "#ff6b35";
+      saveButton.textContent = "Save Changes (Unsaved)";
+      saveButton.style.animation = "pulse 1s infinite";
+    }
+
+    // Reset the dropdown
+    masterLessonSelect.selectedIndex = 0;
+
+    console.log(
+      `Lesson replaced in UI - Unit: ${unitValue}, Position: ${Array.from(
+        unitCard.querySelectorAll("li[data-lesson-id]")
+      ).indexOf(lessonItem)}`
+    );
+  }
+});
+
+// Handle saving unit changes
+async function handleSaveUnit(saveButton) {
+  console.log("=== HANDLE SAVE UNIT START ===");
+  console.log("Save button clicked:", saveButton);
+  console.log("window.teacherUnits:", window.teacherUnits);
+  console.log("window.allTeacherLessons:", window.allTeacherLessons);
+  console.log("window.activeTeacherName:", window.activeTeacherName);
+
+  const unitCard = saveButton.closest(".assigned-unit-card");
+  if (!unitCard) {
+    console.error("Could not find assigned-unit-card ancestor");
+    alert("Unable to find unit information. Please try again.");
+    return;
+  }
+
+  const unitValue = unitCard.getAttribute("data-unit-value");
+  console.log("Unit card found:", unitCard);
+  console.log("Unit value from data attribute:", unitValue);
+
+  if (!unitValue) {
+    console.error("Unit card HTML:", unitCard.outerHTML);
+    alert("Unable to find unit identifier. Please try again.");
+    return;
+  }
+
+  // Find the complete unit data from window.teacherUnits
+  const currentUnit = window.teacherUnits.find((u) => u.value === unitValue);
+  if (!currentUnit) {
+    console.error(
+      "Could not find unit in teacherUnits array. Available units:",
+      window.teacherUnits
+    );
+    console.error("Looking for unit value:", unitValue);
+    alert("Unable to find unit data. Please refresh and try again.");
+    return;
+  }
+
+  console.log("Found current unit:", currentUnit);
+
+  // Determine lessons to save - use pending changes if they exist, otherwise use current unit lessons
+  let lessonsToSave = [];
+
+  if (
+    window.pendingLessonChanges &&
+    window.pendingLessonChanges.has(unitValue)
+  ) {
+    // Use pending changes
+    const pendingData = window.pendingLessonChanges.get(unitValue);
+    lessonsToSave = pendingData.pendingLessons.map((lesson) => ({
+      lesson_title: lesson.lesson_title,
+      intro_text_blocks: lesson.intro_text_blocks,
+      conditions: lesson.conditions,
+    }));
+    console.log("Using pending changes for lessons:", lessonsToSave);
+  } else {
+    // No pending changes - extract lessons from the DOM as fallback
     const lessonItems = unitCard.querySelectorAll(
       ".lesson-list-management li[data-lesson-id]"
     );
-    const lessons = [];
 
     lessonItems.forEach((lessonItem) => {
       const lessonId = lessonItem.getAttribute("data-lesson-id");
@@ -1633,7 +3048,7 @@ document.addEventListener("DOMContentLoaded", function () {
           (l) => l._id === lessonId
         );
         if (fullLesson) {
-          lessons.push({
+          lessonsToSave.push({
             lesson_title: fullLesson.lesson_title,
             intro_text_blocks: fullLesson.intro_text_blocks,
             conditions: fullLesson.conditions,
@@ -1646,251 +3061,260 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }
     });
+    console.log(
+      "No pending changes - extracted lessons from DOM:",
+      lessonsToSave
+    );
+  }
 
-    console.log("Extracted lessons from UI:", lessons);
+  // Create the complete unit data object with updated lessons
+  const unitData = {
+    value: currentUnit.value,
+    name: currentUnit.name,
+    lessons: lessonsToSave,
+  };
 
-    // Find the complete unit data from window.teacherUnits
-    const currentUnit = window.teacherUnits.find((u) => u.value === unitValue);
-    if (!currentUnit) {
-      console.error(
-        "Could not find unit in teacherUnits array. Available units:",
-        window.teacherUnits
-      );
-      console.error("Looking for unit value:", unitValue);
-      alert("Unable to find unit data. Please refresh and try again.");
-      return;
-    }
+  // Validate the unit data before sending
+  if (!unitData.value || !unitData.name) {
+    console.error("Unit data is missing required fields:", unitData);
+    console.error("Current unit:", currentUnit);
+    alert("Unit data is incomplete. Please refresh and try again.");
+    return;
+  }
 
-    console.log("Found current unit:", currentUnit);
+  // Debug logging
+  console.log("Saving unit:", unitValue);
+  console.log("Complete unit data to save:", unitData);
 
-    // Create the complete unit data object with updated lessons
-    const unitData = {
-      value: currentUnit.value,
-      name: currentUnit.name,
-      lessons: lessons,
+  try {
+    const originalText = saveButton.textContent;
+    saveButton.disabled = true;
+    saveButton.textContent = "Saving...";
+
+    const requestPayload = {
+      teacherName: window.activeTeacherName,
+      unitData: unitData,
     };
 
-    // Validate the unit data before sending
-    if (!unitData.value || !unitData.name) {
-      console.error("Unit data is missing required fields:", unitData);
-      console.error("Current unit:", currentUnit);
-      alert("Unit data is incomplete. Please refresh and try again.");
-      return;
-    }
+    console.log("=== SENDING REQUEST TO SERVER ===");
+    console.log("Request URL:", https://tclessonserver-production.up.railway.app/saveUnitChanges");
+    console.log("Request payload:", JSON.stringify(requestPayload, null, 2));
 
-    // Debug logging
-    console.log("Saving unit:", unitValue);
-    console.log("Complete unit data to save:", unitData);
+    const response = await fetch(https://tclessonserver-production.up.railway.app/saveUnitChanges", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestPayload),
+    });
 
-    try {
-      const originalText = saveButton.textContent;
-      saveButton.disabled = true;
-      saveButton.textContent = "Saving...";
+    const result = await response.json();
 
-      const requestPayload = {
-        teacherName: window.activeTeacherName,
-        unitData: unitData,
-      };
+    if (response.ok && result.success) {
+      alert(
+        `Unit "${unitData.name}" changes saved successfully! ${unitData.lessons.length} lessons saved.`
+      );
 
-      console.log("=== SENDING REQUEST TO SERVER ===");
-      console.log("Request URL:", "https://tclessonserver-production.up.railway.app/saveUnitChanges");
-      console.log("Request payload:", JSON.stringify(requestPayload, null, 2));
+      // Update the local data
+      if (window.teacherUnits && Array.isArray(window.teacherUnits)) {
+        const unit = window.teacherUnits.find((u) => u.value === unitValue);
+        if (unit) {
+          unit.lessons = lessonsToSave;
+        }
+      }
 
-      const response = await fetch("https://tclessonserver-production.up.railway.app/saveUnitChanges", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestPayload),
+      // Clear pending changes for this unit since they've been saved
+      if (
+        window.pendingLessonChanges &&
+        window.pendingLessonChanges.has(unitValue)
+      ) {
+        window.pendingLessonChanges.delete(unitValue);
+        console.log("Cleared pending changes for unit:", unitValue);
+      }
+
+      // Remove visual indicators of unsaved changes
+      const changedLessons = unitCard.querySelectorAll(
+        "li[data-changed='true']"
+      );
+      changedLessons.forEach((lessonItem) => {
+        lessonItem.removeAttribute("data-changed");
+        lessonItem.style.backgroundColor = "";
+        lessonItem.style.border = "";
       });
 
-      const result = await response.json();
+      // Visual feedback - briefly change button color
+      saveButton.style.backgroundColor = "#28a745";
+      saveButton.style.animation = "";
+      saveButton.textContent = "Saved!";
 
-      if (response.ok && result.success) {
-        alert(
-          `Unit "${unitData.name}" changes saved successfully! ${unitData.lessons.length} lessons saved.`
+      setTimeout(() => {
+        saveButton.style.backgroundColor = "";
+        saveButton.textContent = originalText;
+      }, 2000);
+    } else {
+      // Handle specific error for default unit modification
+      if (result.isDefaultUnitError) {
+        showNotification(
+          "You cannot modify default units. Please create your own unit and lessons instead.",
+          "error",
+          8000
         );
+      } else {
+        alert(`Error: ${result.message || "Failed to save unit changes"}`);
+      }
+    }
+  } catch (error) {
+    console.error("Error saving unit changes:", error);
+    alert("An error occurred while saving unit changes. Please try again.");
+  } finally {
+    saveButton.disabled = false;
+    if (saveButton.textContent === "Saving...") {
+      saveButton.textContent = `Save Changes to ${unitValue}`;
+    }
+  }
+}
 
-        // Update the local data
-        if (window.teacherUnits && Array.isArray(window.teacherUnits)) {
-          const unit = window.teacherUnits.find((u) => u.value === unitValue);
-          if (unit) {
-            unit.lessons = lessons;
+// Handle copying default unit to teacher's own units
+async function handleCopyDefaultUnit(copyButton) {
+  console.log("=== HANDLE COPY DEFAULT UNIT START ===");
+
+  const unitCard = copyButton.closest(".assigned-unit-card");
+  if (!unitCard) {
+    console.error("Could not find assigned-unit-card ancestor");
+    alert("Unable to find unit information. Please try again.");
+    return;
+  }
+
+  const unitValue = unitCard.getAttribute("data-unit-value");
+  if (!unitValue) {
+    console.error("Unit value not found in data-unit-value attribute");
+    alert("Unable to identify unit. Please refresh and try again.");
+    return;
+  }
+
+  // Confirm with the user
+  const unitTitle = unitCard
+    .querySelector("h6")
+    .textContent.replace(" (Default unit)", "");
+  const confirmMessage = `Copy "${unitTitle}" to your own units?\n\nThis will create your own editable copy of this default unit with all its lessons. You'll then be able to modify it as needed.`;
+
+  if (!confirm(confirmMessage)) {
+    return;
+  }
+
+  try {
+    // Disable button during operation
+    const originalText = copyButton.textContent;
+    copyButton.disabled = true;
+    copyButton.textContent = "📋 Copying...";
+
+    const response = await fetch(https://tclessonserver-production.up.railway.app/copy-default-unit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        teacherName: window.activeTeacherName,
+        unitValue: unitValue,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (response.ok && result.success) {
+      showNotification(`✅ ${result.message}`, "success", 8000);
+
+      // Reload the teacher's lesson data to show the new unit
+      await loadTeacherLessons(window.activeTeacherName);
+
+      // Refresh the modal display
+      refreshLessonManagementModal();
+
+      console.log("Default unit copied successfully:", result);
+    } else {
+      if (response.status === 409) {
+        showNotification(
+          "You already have a unit with this identifier. Please modify your existing unit instead.",
+          "error",
+          6000
+        );
+      } else {
+        showNotification(
+          `Error: ${result.message || "Failed to copy unit"}`,
+          "error",
+          6000
+        );
+      }
+    }
+  } catch (error) {
+    console.error("Error copying default unit:", error);
+    showNotification(
+      "An error occurred while copying the unit. Please try again.",
+      "error",
+      5000
+    );
+  } finally {
+    copyButton.disabled = false;
+    copyButton.textContent = originalText;
+  }
+}
+
+document
+  .getElementById("sendClassMessageBtn")
+  ?.addEventListener("click", function () {
+    window.openGlobalDialog(
+      "Send Class Message",
+      "Enter the message to send to the entire class:",
+      {
+        recipient: "Entire Class",
+        onSend: (messageText) => {
+          // MODIFIED: Handle closing globalDialog and opening messagesDialog
+          // Use the special 'class-message-NAME' recipient to trigger a class-wide message
+          const sentThreadId = sendMessage(
+            window.activeTeacherName,
+            `class-message-${window.activeTeacherName}`,
+            messageText
+          );
+          window.closeGlobalDialog(); // Close the current dialog
+          messagesDialog.showModal(); // Open the messages dialog
+          renderThreadsPanel({ autoSelectFirst: false }); // Render threads, but don't auto-select the first one
+          // Find and click the specific thread item
+          const threadItem = messagesDialog.querySelector(
+            `[data-thread-id="${CSS.escape(sentThreadId)}"]`
+          );
+          if (threadItem) {
+            threadItem.click();
           }
-        }
-
-        // Visual feedback - briefly change button color
-        saveButton.style.backgroundColor = "#28a745";
-        saveButton.textContent = "Saved!";
-
-        setTimeout(() => {
-          saveButton.style.backgroundColor = "";
-          saveButton.textContent = originalText;
-        }, 2000);
-      } else {
-        // Handle specific error for default unit modification
-        if (result.isDefaultUnitError) {
-          showNotification(
-            "You cannot modify default units. Please create your own unit and lessons instead.",
-            "error",
-            8000
-          );
-        } else {
-          alert(`Error: ${result.message || "Failed to save unit changes"}`);
-        }
-      }
-    } catch (error) {
-      console.error("Error saving unit changes:", error);
-      alert("An error occurred while saving unit changes. Please try again.");
-    } finally {
-      saveButton.disabled = false;
-      if (saveButton.textContent === "Saving...") {
-        saveButton.textContent = `Save Changes to ${unitValue}`;
-      }
-    }
-  }
-
-  // Handle copying default unit to teacher's own units
-  async function handleCopyDefaultUnit(copyButton) {
-    console.log("=== HANDLE COPY DEFAULT UNIT START ===");
-
-    const unitCard = copyButton.closest(".assigned-unit-card");
-    if (!unitCard) {
-      console.error("Could not find assigned-unit-card ancestor");
-      alert("Unable to find unit information. Please try again.");
-      return;
-    }
-
-    const unitValue = unitCard.getAttribute("data-unit-value");
-    if (!unitValue) {
-      console.error("Unit value not found in data-unit-value attribute");
-      alert("Unable to identify unit. Please refresh and try again.");
-      return;
-    }
-
-    // Confirm with the user
-    const unitTitle = unitCard
-      .querySelector("h6")
-      .textContent.replace(" (Default unit)", "");
-    const confirmMessage = `Copy "${unitTitle}" to your own units?\n\nThis will create your own editable copy of this default unit with all its lessons. You'll then be able to modify it as needed.`;
-
-    if (!confirm(confirmMessage)) {
-      return;
-    }
-
-    try {
-      // Disable button during operation
-      const originalText = copyButton.textContent;
-      copyButton.disabled = true;
-      copyButton.textContent = "📋 Copying...";
-
-      const response = await fetch("https://tclessonserver-production.up.railway.app/copy-default-unit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          teacherName: window.activeTeacherName,
-          unitValue: unitValue,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        showNotification(`✅ ${result.message}`, "success", 8000);
-
-        // Reload the teacher's lesson data to show the new unit
-        await loadTeacherLessons(window.activeTeacherName);
-
-        // Refresh the modal display
-        refreshLessonManagementModal();
-
-        console.log("Default unit copied successfully:", result);
-      } else {
-        if (response.status === 409) {
-          showNotification(
-            "You already have a unit with this identifier. Please modify your existing unit instead.",
-            "error",
-            6000
-          );
-        } else {
-          showNotification(
-            `Error: ${result.message || "Failed to copy unit"}`,
-            "error",
-            6000
-          );
-        }
       }
-    } catch (error) {
-      console.error("Error copying default unit:", error);
-      showNotification(
-        "An error occurred while copying the unit. Please try again.",
-        "error",
-        5000
-      );
-    } finally {
-      copyButton.disabled = false;
-      copyButton.textContent = originalText;
-    }
-  }
+    );
+    console.log("Send Class Message button clicked");
+  });
 
-  document
-    .getElementById("sendClassMessageBtn")
-    ?.addEventListener("click", function () {
-      window.openGlobalDialog(
-        "Send Class Message",
-        "Enter the message to send to the entire class:",
-        {
-          recipient: "Entire Class",
-          onSend: (messageText) => {
-            // MODIFIED: Handle closing globalDialog and opening messagesDialog
-            // Use the special 'class-message-NAME' recipient to trigger a class-wide message
-            const sentThreadId = sendMessage(
-              window.activeTeacherName,
-              `class-message-${window.activeTeacherName}`,
-              messageText
-            );
-            window.closeGlobalDialog(); // Close the current dialog
-            messagesDialog.showModal(); // Open the messages dialog
-            renderThreadsPanel({ autoSelectFirst: false }); // Render threads, but don't auto-select the first one
-            // Find and click the specific thread item
-            const threadItem = messagesDialog.querySelector(
-              `[data-thread-id="${CSS.escape(sentThreadId)}"]`
-            );
-            if (threadItem) {
-              threadItem.click();
-            }
-          },
-        }
-      );
-      console.log("Send Class Message button clicked");
-    });
+// FIX: Use openEmailDialog for Email Parents/Staff
+document
+  .getElementById("emailParentsBtn")
+  ?.addEventListener("click", function () {
+    openEmailDialog();
+    console.log("Email Parents/Staff button clicked");
+  });
 
-  // FIX: Use openEmailDialog for Email Parents/Staff
-  document
-    .getElementById("emailParentsBtn")
-    ?.addEventListener("click", function () {
-      openEmailDialog();
-      console.log("Email Parents/Staff button clicked");
-    });
+document
+  .getElementById("accessWhirlpoolBtn")
+  ?.addEventListener("click", function () {
+    window.openGlobalDialog(
+      "Access Whirlpool",
+      "This is the Access Whirlpool dialog."
+    );
+    console.log("Access Whirlpool button clicked");
+  });
 
-  document
-    .getElementById("accessWhirlpoolBtn")
-    ?.addEventListener("click", function () {
-      window.openGlobalDialog(
-        "Access Whirlpool",
-        "This is the Access Whirlpool dialog."
-      );
-      console.log("Access Whirlpool button clicked");
-    });
-
-  // Register Students button
-  const registerStudentsBtn = document.getElementById("registerStudentsBtn");
-  if (registerStudentsBtn) {
-    registerStudentsBtn.addEventListener("click", function () {
-      // NEW: Dialog content for Register Students with improved layout
-      const content = `
+// Register Students button
+const registerStudentsBtn = document.getElementById("registerStudentsBtn");
+if (registerStudentsBtn) {
+  registerStudentsBtn.addEventListener("click", function () {
+    // NEW: Dialog content for Register Students with improved layout
+    const content = `
           <div style="width:100%;background:rgba(255,255,255,0.08);padding:1em 0.5em 0.5em 0.5em;border-radius:16px 16px 0 0;">
             <label style="font-weight:700;display:block;width:100%;text-align:left;">Teacher Email Address</label>
             <input type="email" id="teacherEmailInput" placeholder="Your email address" style="margin-top:0.5em;width:100%;max-width:350px;padding:0.5em 1em;border-radius:8px;border:none;font-size:1.1em;" required />
@@ -1908,239 +3332,233 @@ document.addEventListener("DOMContentLoaded", function () {
           <div id="classCodesResult" style="width:100%;margin-top:1em;"></div>
         </form>
       `;
-      window.openGlobalDialog("Register Students", "");
-      document.getElementById("dialogContent").innerHTML = content;
-      // Helper to update student inputs
-      function updateStudentInputs() {
+    window.openGlobalDialog("Register Students", "");
+    document.getElementById("dialogContent").innerHTML = content;
+    // Helper to update student inputs
+    function updateStudentInputs() {
+      const numPeriods =
+        parseInt(document.getElementById("numPeriods").value) || 1;
+      const container = document.getElementById("studentsPerPeriodInputs");
+      container.innerHTML = "";
+      for (let i = 1; i <= numPeriods; i++) {
+        container.innerHTML += `<div style='display:flex;align-items:center;gap:1em;margin-bottom:0.7em;width:100%;'><label style='flex:1;font-weight:500;'>Students in Period ${i}:</label><input type='number' class='studentsInPeriod' min='1' value='1' style='width:100px;padding:0.4em 0.7em;border-radius:6px;border:none;font-size:1em;' required /></div>`;
+      }
+      updateTotal();
+    }
+    // Helper to update total
+    function updateTotal() {
+      const studentInputs = document.querySelectorAll(".studentsInPeriod");
+      let total = 0;
+      studentInputs.forEach((input) => {
+        total += parseInt(input.value) || 0;
+      });
+      document.getElementById("totalStudents").textContent = total;
+    }
+    // Initial setup
+    updateStudentInputs();
+    document
+      .getElementById("numPeriods")
+      .addEventListener("input", updateStudentInputs);
+    document
+      .getElementById("studentsPerPeriodInputs")
+      .addEventListener("input", updateTotal);
+    // Generate Class Codes button
+    document
+      .getElementById("generateClassCodesBtn")
+      .addEventListener("click", async function () {
+        const emailInput = document.getElementById("teacherEmailInput");
+        const teacherEmail = emailInput.value.trim();
+        if (!teacherEmail) {
+          emailInput.focus();
+          emailInput.style.border = "2px solid #ffb3b3";
+          return;
+        } else {
+          emailInput.style.border = "";
+        }
         const numPeriods =
           parseInt(document.getElementById("numPeriods").value) || 1;
-        const container = document.getElementById("studentsPerPeriodInputs");
-        container.innerHTML = "";
-        for (let i = 1; i <= numPeriods; i++) {
-          container.innerHTML += `<div style='display:flex;align-items:center;gap:1em;margin-bottom:0.7em;width:100%;'><label style='flex:1;font-weight:500;'>Students in Period ${i}:</label><input type='number' class='studentsInPeriod' min='1' value='1' style='width:100px;padding:0.4em 0.7em;border-radius:6px;border:none;font-size:1em;' required /></div>`;
-        }
-        updateTotal();
-      }
-      // Helper to update total
-      function updateTotal() {
-        const studentInputs = document.querySelectorAll(".studentsInPeriod");
-        let total = 0;
-        studentInputs.forEach((input) => {
-          total += parseInt(input.value) || 0;
-        });
-        document.getElementById("totalStudents").textContent = total;
-      }
-      // Initial setup
-      updateStudentInputs();
-      document
-        .getElementById("numPeriods")
-        .addEventListener("input", updateStudentInputs);
-      document
-        .getElementById("studentsPerPeriodInputs")
-        .addEventListener("input", updateTotal);
-      // Generate Class Codes button
-      document
-        .getElementById("generateClassCodesBtn")
-        .addEventListener("click", async function () {
-          const emailInput = document.getElementById("teacherEmailInput");
-          const teacherEmail = emailInput.value.trim();
-          if (!teacherEmail) {
-            emailInput.focus();
-            emailInput.style.border = "2px solid #ffb3b3";
-            return;
-          } else {
-            emailInput.style.border = "";
-          }
-          const numPeriods =
-            parseInt(document.getElementById("numPeriods").value) || 1;
-          // Periods as ['01', '02', ...]
-          const periods = Array.from({ length: numPeriods }, (_, i) =>
-            (i + 1).toString().padStart(2, "0")
-          );
-          const resultDiv = document.getElementById("classCodesResult");
-          resultDiv.innerHTML =
-            '<span style="color:#fff;">Generating codes...</span>';
-          try {
-            const payload = {
-              parcel: [window.activeTeacherUsername, teacherEmail, periods],
-            };
-            console.log("Sending to /generateClassCodes:", payload);
-            const response = await fetch(`${API_BASE_URL}/generateClassCodes`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload),
-            });
-            const data = await response.json();
-            if (response.ok && data.codes) {
-              resultDiv.innerHTML = `<div style='margin-top:1em;text-align:left;'><b>Class Codes:</b><ul style='margin:0.5em 0 0 1.2em;padding:0;'>${data.codes
-                .map((code) => `<li style='word-break:break-all;'>${code}</li>`)
-                .join("")}</ul></div>`;
-            } else {
-              resultDiv.innerHTML = `<span style='color:#ffb3b3;'>${
-                data.error || "Error generating codes."
-              }</span>`;
-            }
-          } catch (err) {
-            resultDiv.innerHTML = `<span style='color:#ffb3b3;'>Server error. Please try again.</span>`;
-          }
-        });
-    });
-  }
-
-  // Student message buttons - use event delegation since they're added dynamically
-  document.addEventListener("click", function (e) {
-    if (e.target && e.target.classList.contains("message-btn")) {
-      const student =
-        e.target.closest(".student-card").querySelector("h5")?.textContent ||
-        "";
-      if (student) {
-        window.openGlobalDialog(
-          `Message Student: ${student}`,
-          `Enter your message for <strong>${student}</strong>:`,
-          {
-            recipient: student,
-            onSend: (messageText) => {
-              // MODIFIED: Handle closing globalDialog and opening messagesDialog
-              // The 'student' variable here is the student's full name
-              const sentThreadId = sendMessage(
-                window.activeTeacherName,
-                student,
-                messageText
-              );
-              window.closeGlobalDialog(); // Close the current dialog
-              messagesDialog.showModal(); // Open the messages dialog
-              renderThreadsPanel({ autoSelectFirst: false }); // Render threads, but don't auto-select the first one
-              // Find and click the specific thread item
-              const threadItem = messagesDialog.querySelector(
-                `[data-thread-id="${CSS.escape(sentThreadId)}"]`
-              );
-              if (threadItem) {
-                threadItem.click();
-              }
-            },
-          }
+        // Periods as ['01', '02', ...]
+        const periods = Array.from({ length: numPeriods }, (_, i) =>
+          (i + 1).toString().padStart(2, "0")
         );
-        console.log(`Message button clicked for: ${student}`);
-      }
-    }
-  });
-
-  // Messages button
-  document
-    .getElementById("messagesBtn")
-    ?.addEventListener("click", function () {
-      if (signOnDialog.open) signOnDialog.close();
-      const globalDialog = document.getElementById("globalDialog");
-      if (globalDialog.open) globalDialog.close();
-
-      // Open the messages dialog
-      if (!messagesDialog.open) {
-        messagesDialog.showModal();
-        renderThreadsPanel(); // Render threads from memory when dialog is opened
-      }
-      console.log("Messages button clicked");
-    });
-
-  // --- NEW LOGIC FOR MESSAGES DIALOG ---
-  const threadsPanel = messagesDialog.querySelector(".threads-panel");
-  const messagesBody = messagesDialog.querySelector(".messages-list");
-  const messageInput = messagesDialog.querySelector("#messageInput");
-  const sendMessageBtn = messagesDialog.querySelector("#sendMessageBtn");
-
-  // Function to handle sending a message from the main dialog
-  const sendMessageFromDialog = () => {
-    const message = messageInput.value.trim();
-    const activeThread = threadsPanel.querySelector(
-      ".thread-item.active-thread"
-    );
-
-    if (message && activeThread) {
-      const recipient = activeThread.dataset.threadId;
-      let actualRecipientForServer;
-
-      if (recipient.startsWith("class-message-")) {
-        actualRecipientForServer = recipient; // For class messages, the threadId is the recipientId
-      } else {
-        // For private messages, the threadId is "StudentName_TeacherName"
-        // We need to extract the student's name as the actual recipient for the server
-        const participants = recipient.split("_");
-        actualRecipientForServer = participants.find(
-          (p) => p !== window.activeTeacherName
-        );
-      }
-      sendMessage(window.activeTeacherName, actualRecipientForServer, message);
-      messageInput.value = ""; // Clear input after sending
-      messageInput.focus();
-    }
-  };
-
-  // Event listeners for sending messages from the main dialog
-  sendMessageBtn.addEventListener("click", sendMessageFromDialog);
-  messageInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault(); // Prevent new line on Enter
-      sendMessageFromDialog();
-    }
-  });
-
-  // Handle switching between threads
-  threadsPanel.addEventListener("click", (e) => {
-    // This is the event listener for clicking on a thread in the left panel
-    const threadItem = e.target.closest(".thread-item");
-    if (threadItem) {
-      const currentTeacher = window.activeTeacherName;
-      if (!messagesBody || !currentTeacher) return;
-
-      // Remove active class from all threads
-      threadsPanel
-        .querySelectorAll(".thread-item")
-        .forEach((item) => item.classList.remove("active-thread"));
-      // Add active class to the clicked thread
-      threadItem.classList.add("active-thread");
-      // When a thread is clicked, it's considered "read"
-      threadItem.classList.remove("has-unread");
-      const threadId = threadItem.dataset.threadId;
-      if (window.messageThreads.has(threadId)) {
-        window.messageThreads.get(threadId).hasUnread = false;
-      }
-
-      console.log(`Switched to thread: ${threadId}`);
-
-      // Clear previous messages
-      messagesBody.innerHTML = ""; // Clear the messages display area
-
-      // Render messages from the stored data, not from a new fetch
-      const threadData = window.messageThreads.get(threadId);
-      if (threadData && threadData.messages) {
-        threadData.messages.forEach((msg) => {
-          const wrapperElement = document.createElement("div");
-          wrapperElement.classList.add("message-wrapper");
-          wrapperElement.classList.add(
-            msg.senderId === currentTeacher ? "sent" : "received"
-          );
-
-          const senderTag = // This is for displaying the sender's name in class messages
-            msg.isClassMessage && msg.senderId !== currentTeacher
-              ? `<strong class="message-sender-name">${msg.senderId}</strong>`
-              : "";
-          const timestamp = new Date(msg.timestamp).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
+        const resultDiv = document.getElementById("classCodesResult");
+        resultDiv.innerHTML =
+          '<span style="color:#fff;">Generating codes...</span>';
+        try {
+          const payload = {
+            parcel: [window.activeTeacherUsername, teacherEmail, periods],
+          };
+          console.log("Sending to /generateClassCodes:", payload);
+          const response = await fetch(`${API_BASE_URL}/generateClassCodes`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
           });
-          wrapperElement.innerHTML = `
+          const data = await response.json();
+          if (response.ok && data.codes) {
+            resultDiv.innerHTML = `<div style='margin-top:1em;text-align:left;'><b>Class Codes:</b><ul style='margin:0.5em 0 0 1.2em;padding:0;'>${data.codes
+              .map((code) => `<li style='word-break:break-all;'>${code}</li>`)
+              .join("")}</ul></div>`;
+          } else {
+            resultDiv.innerHTML = `<span style='color:#ffb3b3;'>${
+              data.error || "Error generating codes."
+            }</span>`;
+          }
+        } catch (err) {
+          resultDiv.innerHTML = `<span style='color:#ffb3b3;'>Server error. Please try again.</span>`;
+        }
+      });
+  });
+}
+
+// Student message buttons - use event delegation since they're added dynamically
+document.addEventListener("click", function (e) {
+  if (e.target && e.target.classList.contains("message-btn")) {
+    const student =
+      e.target.closest(".student-card").querySelector("h5")?.textContent || "";
+    if (student) {
+      window.openGlobalDialog(
+        `Message Student: ${student}`,
+        `Enter your message for <strong>${student}</strong>:`,
+        {
+          recipient: student,
+          onSend: (messageText) => {
+            // MODIFIED: Handle closing globalDialog and opening messagesDialog
+            // The 'student' variable here is the student's full name
+            const sentThreadId = sendMessage(
+              window.activeTeacherName,
+              student,
+              messageText
+            );
+            window.closeGlobalDialog(); // Close the current dialog
+            messagesDialog.showModal(); // Open the messages dialog
+            renderThreadsPanel({ autoSelectFirst: false }); // Render threads, but don't auto-select the first one
+            // Find and click the specific thread item
+            const threadItem = messagesDialog.querySelector(
+              `[data-thread-id="${CSS.escape(sentThreadId)}"]`
+            );
+            if (threadItem) {
+              threadItem.click();
+            }
+          },
+        }
+      );
+      console.log(`Message button clicked for: ${student}`);
+    }
+  }
+});
+
+// Messages button
+document.getElementById("messagesBtn")?.addEventListener("click", function () {
+  if (signOnDialog.open) signOnDialog.close();
+  const globalDialog = document.getElementById("globalDialog");
+  if (globalDialog.open) globalDialog.close();
+
+  // Open the messages dialog
+  if (!messagesDialog.open) {
+    messagesDialog.showModal();
+    renderThreadsPanel(); // Render threads from memory when dialog is opened
+  }
+  console.log("Messages button clicked");
+});
+
+// --- NEW LOGIC FOR MESSAGES DIALOG ---
+const threadsPanel = messagesDialog.querySelector(".threads-panel");
+const messagesBody = messagesDialog.querySelector(".messages-list");
+const messageInput = messagesDialog.querySelector("#messageInput");
+const sendMessageBtn = messagesDialog.querySelector("#sendMessageBtn");
+
+// Function to handle sending a message from the main dialog
+const sendMessageFromDialog = () => {
+  const message = messageInput.value.trim();
+  const activeThread = threadsPanel.querySelector(".thread-item.active-thread");
+
+  if (message && activeThread) {
+    const recipient = activeThread.dataset.threadId;
+    let actualRecipientForServer;
+
+    if (recipient.startsWith("class-message-")) {
+      actualRecipientForServer = recipient; // For class messages, the threadId is the recipientId
+    } else {
+      // For private messages, the threadId is "StudentName_TeacherName"
+      // We need to extract the student's name as the actual recipient for the server
+      const participants = recipient.split("_");
+      actualRecipientForServer = participants.find(
+        (p) => p !== window.activeTeacherName
+      );
+    }
+    sendMessage(window.activeTeacherName, actualRecipientForServer, message);
+    messageInput.value = ""; // Clear input after sending
+    messageInput.focus();
+  }
+};
+
+// Event listeners for sending messages from the main dialog
+sendMessageBtn.addEventListener("click", sendMessageFromDialog);
+messageInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault(); // Prevent new line on Enter
+    sendMessageFromDialog();
+  }
+});
+
+// Handle switching between threads
+threadsPanel.addEventListener("click", (e) => {
+  // This is the event listener for clicking on a thread in the left panel
+  const threadItem = e.target.closest(".thread-item");
+  if (threadItem) {
+    const currentTeacher = window.activeTeacherName;
+    if (!messagesBody || !currentTeacher) return;
+
+    // Remove active class from all threads
+    threadsPanel
+      .querySelectorAll(".thread-item")
+      .forEach((item) => item.classList.remove("active-thread"));
+    // Add active class to the clicked thread
+    threadItem.classList.add("active-thread");
+    // When a thread is clicked, it's considered "read"
+    threadItem.classList.remove("has-unread");
+    const threadId = threadItem.dataset.threadId;
+    if (window.messageThreads.has(threadId)) {
+      window.messageThreads.get(threadId).hasUnread = false;
+    }
+
+    console.log(`Switched to thread: ${threadId}`);
+
+    // Clear previous messages
+    messagesBody.innerHTML = ""; // Clear the messages display area
+
+    // Render messages from the stored data, not from a new fetch
+    const threadData = window.messageThreads.get(threadId);
+    if (threadData && threadData.messages) {
+      threadData.messages.forEach((msg) => {
+        const wrapperElement = document.createElement("div");
+        wrapperElement.classList.add("message-wrapper");
+        wrapperElement.classList.add(
+          msg.senderId === currentTeacher ? "sent" : "received"
+        );
+
+        const senderTag = // This is for displaying the sender's name in class messages
+          msg.isClassMessage && msg.senderId !== currentTeacher
+            ? `<strong class="message-sender-name">${msg.senderId}</strong>`
+            : "";
+        const timestamp = new Date(msg.timestamp).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        wrapperElement.innerHTML = `
             <div class="message-item">
               ${senderTag}
               <p class="message-content">${msg.messageContent}</p>
             </div>
             <span class="message-timestamp">${timestamp}</span>
           `;
-          messagesBody.appendChild(wrapperElement);
-        });
+        messagesBody.appendChild(wrapperElement);
+      });
 
-        messagesBody.scrollTop = messagesBody.scrollHeight; // Scroll to bottom
-      }
+      messagesBody.scrollTop = messagesBody.scrollHeight; // Scroll to bottom
     }
-  });
+  }
 });
 
 // Fetch and display students by class period after login
@@ -2192,7 +3610,7 @@ async function loadTeacherLessons(teacherName) {
   try {
     // The lesson server is on port 4000
     const response = await fetch(
-      `https://tclessonserver-production.up.railway.app/lessons/${teacherName}`
+      `http://localhost:4000/lessons/${teacherName}`
     );
     if (response.ok) {
       const data = await response.json();
@@ -2373,6 +3791,12 @@ function refreshLessonManagementModal() {
     console.log("Current teacherUnits data:", window.teacherUnits);
     console.log("Current allTeacherLessons data:", window.allTeacherLessons);
 
+    // Clear pending changes when refreshing
+    if (window.pendingLessonChanges) {
+      window.pendingLessonChanges.clear();
+      console.log("Cleared all pending lesson changes on refresh");
+    }
+
     // Call the internal populateAssignedUnits function if it exists
     // Since it's defined inside the modal opening function, we need to recreate it
     const container = document.getElementById("assignedUnitsContainer");
@@ -2467,7 +3891,7 @@ function populateAssignedUnitsDisplay(container) {
     let lessonsHtml = "";
     if (unit.lessons && Array.isArray(unit.lessons)) {
       lessonsHtml = unit.lessons
-        .map((lesson) => {
+        .map((lesson, index) => {
           console.log("Debug - Lesson data:", lesson);
           console.log(
             "Debug - Lesson._id:",
@@ -2476,17 +3900,50 @@ function populateAssignedUnitsDisplay(container) {
             typeof lesson._id
           );
 
-          // Find the matching lesson in allTeacherLessons to get the _id
-          const matchingLesson = window.allTeacherLessons.find(
-            (fullLesson) => fullLesson.lesson_title === lesson.lesson_title
-          );
+          // Use the lesson's _id if it exists, otherwise try to find it by title matching
+          let lessonId = lesson._id;
 
-          const lessonId = matchingLesson ? matchingLesson._id : "";
-          console.log("Debug - Matched lesson ID:", lessonId);
+          if (!lessonId) {
+            // Fallback: Find the matching lesson in allTeacherLessons to get the _id
+            const matchingLesson = window.allTeacherLessons.find(
+              (fullLesson) => fullLesson.lesson_title === lesson.lesson_title
+            );
+            lessonId = matchingLesson ? matchingLesson._id : "";
+          }
+
+          console.log("Debug - Final lesson ID for rendering:", lessonId);
+
+          // Check if this lesson has pending changes
+          const hasPendingChanges =
+            window.pendingLessonChanges &&
+            window.pendingLessonChanges.has(unit.value);
+
+          let pendingLesson = lesson;
+          let isChanged = false;
+
+          if (hasPendingChanges) {
+            const pendingData = window.pendingLessonChanges.get(unit.value);
+            if (pendingData.pendingLessons[index]) {
+              pendingLesson = pendingData.pendingLessons[index];
+              // Check if this lesson was changed from the original
+              const originalLesson = pendingData.originalLessons[index];
+              isChanged =
+                originalLesson && originalLesson._id !== pendingLesson._id;
+              if (isChanged) {
+                lessonId = pendingLesson._id; // Use the new lesson ID
+              }
+            }
+          }
+
+          const changeStyle = isChanged
+            ? 'style="background-color: rgba(255, 193, 7, 0.2); border: 1px solid rgba(255, 193, 7, 0.5);"'
+            : "";
+
+          const changedAttr = isChanged ? 'data-changed="true"' : "";
 
           return `
-              <li data-lesson-id="${lessonId}">
-                <span>Lesson: ${lesson.lesson_title}</span>
+              <li data-lesson-id="${lessonId}" ${changedAttr} ${changeStyle}>
+                <span>Lesson: ${pendingLesson.lesson_title}</span>
                 <div class="lesson-actions">
                   <button class="btn btn-sm btn-danger remove-lesson-btn">Remove</button>
                   <button class="btn btn-sm btn-info replace-lesson-btn">Replace</button>
@@ -2725,7 +4182,7 @@ const socket = io(API_BASE_URL, {
 });
 
 // Socket.IO connection to lesson server (port 4000)
-const lessonSocket = io("https://tclessonserver-production.up.railway.app", {
+const lessonSocket = io(https://tclessonserver-production.up.railway.app", {
   withCredentials: true,
 });
 
