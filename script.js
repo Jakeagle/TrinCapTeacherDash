@@ -1549,8 +1549,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
           try {
             const endpoint = isEditing
-              ? https://tclessonserver-production.up.railway.app/update-lesson"
-              : https://tclessonserver-production.up.railway.app/save-lesson";
+              ? "https://tclessonserver-production.up.railway.app/update-lesson"
+              : "https://tclessonserver-production.up.railway.app/save-lesson";
 
             console.log(
               `Making ${isEditing ? "UPDATE" : "CREATE"} request to:`,
@@ -1743,7 +1743,7 @@ document.addEventListener("DOMContentLoaded", function () {
           }
 
           // Save the custom unit to the server
-          fetch(https://tclessonserver-production.up.railway.app/create-custom-unit", {
+          fetch("https://tclessonserver-production.up.railway.app/create-custom-unit", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -1861,7 +1861,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 try {
                   const response = await fetch(
-                    `http://localhost:4000/assign-unit`,
+                    `https://tclessonserver-production.up.railway.app/assign-unit`,
                     {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -1942,7 +1942,7 @@ document.addEventListener("DOMContentLoaded", function () {
           if (window.editingLessonId) {
             try {
               const response = await fetch(
-                `http://localhost:4000/debug-lesson/${window.editingLessonId}`
+                `https://tclessonserver-production.up.railway.app/debug-lesson/${window.editingLessonId}`
               );
               const data = await response.json();
 
@@ -2041,7 +2041,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
           try {
             const response = await fetch(
-              `http://localhost:4000/upload-whirlpool`,
+              `https://tclessonserver-production.up.railway.app/upload-whirlpool`,
               {
                 method: "POST",
                 headers: {
@@ -2795,7 +2795,7 @@ document.addEventListener("DOMContentLoaded", function () {
           }
 
           try {
-            const response = await fetch(`http://localhost:4000/assign-unit`, {
+            const response = await fetch(`https://tclessonserver-production.up.railway.app/assign-unit`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -3097,10 +3097,10 @@ async function handleSaveUnit(saveButton) {
     };
 
     console.log("=== SENDING REQUEST TO SERVER ===");
-    console.log("Request URL:", https://tclessonserver-production.up.railway.app/saveUnitChanges");
+    console.log("Request URL:", "https://tclessonserver-production.up.railway.app/saveUnitChanges");
     console.log("Request payload:", JSON.stringify(requestPayload, null, 2));
 
-    const response = await fetch(https://tclessonserver-production.up.railway.app/saveUnitChanges", {
+    const response = await fetch("https://tclessonserver-production.up.railway.app/saveUnitChanges", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -3208,7 +3208,7 @@ async function handleCopyDefaultUnit(copyButton) {
     copyButton.disabled = true;
     copyButton.textContent = "📋 Copying...";
 
-    const response = await fetch(https://tclessonserver-production.up.railway.app/copy-default-unit", {
+    const response = await fetch("https://tclessonserver-production.up.railway.app/copy-default-unit", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -3610,7 +3610,7 @@ async function loadTeacherLessons(teacherName) {
   try {
     // The lesson server is on port 4000
     const response = await fetch(
-      `http://localhost:4000/lessons/${teacherName}`
+      `https://tclessonserver-production.up.railway.app/lessons/${teacherName}`
     );
     if (response.ok) {
       const data = await response.json();
@@ -4182,7 +4182,7 @@ const socket = io(API_BASE_URL, {
 });
 
 // Socket.IO connection to lesson server (port 4000)
-const lessonSocket = io(https://tclessonserver-production.up.railway.app", {
+const lessonSocket = io("https://tclessonserver-production.up.railway.app", {
   withCredentials: true,
 });
 
