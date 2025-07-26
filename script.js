@@ -3315,23 +3315,40 @@ if (registerStudentsBtn) {
   registerStudentsBtn.addEventListener("click", function () {
     // NEW: Dialog content for Register Students with improved layout
     const content = `
-          <div style="width:100%;background:rgba(255,255,255,0.08);padding:1em 0.5em 0.5em 0.5em;border-radius:16px 16px 0 0;">
-            <label style="font-weight:700;display:block;width:100%;text-align:left;">Teacher Email Address</label>
-            <input type="email" id="teacherEmailInput" placeholder="Your email address" style="margin-top:0.5em;width:100%;max-width:350px;padding:0.5em 1em;border-radius:8px;border:none;font-size:1.1em;" required />
+      <div class="register-students-modal">
+        <div class="register-form-grid">
+          <div class="form-section teacher-email-section">
+            <label class="form-label">Teacher Email Address</label>
+            <input type="email" id="teacherEmailInput" placeholder="Your email address" class="form-input" required />
           </div>
-          <div style="width:100%;background:rgba(255,255,255,0.08);padding:1em 0.5em 0.5em 0.5em;border-radius:0;">
-            <label style="font-weight:700;display:block;width:100%;text-align:left;">How many class periods do you teach?</label>
-            <input type="number" id="numPeriods" min="1" max="10" value="1" style="margin-top:0.5em;width:100%;max-width:300px;padding:0.5em 1em;border-radius:8px;border:none;font-size:1.1em;" required />
+          
+          <div class="form-section periods-section">
+            <label class="form-label">How many class periods do you teach?</label>
+            <input type="number" id="numPeriods" min="1" max="10" value="1" class="form-input number-input" required />
           </div>
-          <div id="studentsPerPeriodInputs" style="width:100%;"></div>
-          <div style="width:100%;display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:1.1em;background:rgba(255,255,255,0.05);padding:0.75em 1em;border-radius:8px;">
-            <span>Total Students:</span>
-            <span id="totalStudents">0</span>
+        </div>
+        
+        <div class="form-section students-section">
+          <label class="form-label">Students per Period</label>
+          <div id="studentsPerPeriodInputs" class="students-inputs-container"></div>
+        </div>
+        
+        <div class="summary-section">
+          <div class="total-students-display">
+            <span class="summary-label">Total Students:</span>
+            <span id="totalStudents" class="summary-value">0</span>
           </div>
-          <button type="button" id="generateClassCodesBtn" style="width:100%;max-width:320px;margin-top:1em;padding:0.7em 0;font-size:1.1em;border-radius:8px;" class="btn btn-primary">Generate Class Codes</button>
-          <div id="classCodesResult" style="width:100%;margin-top:1em;"></div>
-        </form>
-      `;
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" id="generateClassCodesBtn" class="btn btn-primary generate-codes-btn">
+            Generate Class Codes
+          </button>
+        </div>
+        
+        <div id="classCodesResult" class="class-codes-result"></div>
+      </div>
+    `;
     window.openGlobalDialog("Register Students", "");
     document.getElementById("dialogContent").innerHTML = content;
     // Helper to update student inputs
@@ -3341,7 +3358,12 @@ if (registerStudentsBtn) {
       const container = document.getElementById("studentsPerPeriodInputs");
       container.innerHTML = "";
       for (let i = 1; i <= numPeriods; i++) {
-        container.innerHTML += `<div style='display:flex;align-items:center;gap:1em;margin-bottom:0.7em;width:100%;'><label style='flex:1;font-weight:500;'>Students in Period ${i}:</label><input type='number' class='studentsInPeriod' min='1' value='1' style='width:100px;padding:0.4em 0.7em;border-radius:6px;border:none;font-size:1em;' required /></div>`;
+        container.innerHTML += `
+          <div class="period-input-row">
+            <label class="period-label">Period ${i}:</label>
+            <input type="number" class="studentsInPeriod period-number-input" min="1" value="1" required />
+          </div>
+        `;
       }
       updateTotal();
     }
@@ -3414,8 +3436,11 @@ if (registerStudentsBtn) {
 // Student message buttons - use event delegation since they're added dynamically
 document.addEventListener("click", function (e) {
   if (e.target && e.target.classList.contains("message-btn")) {
-    const student =
-      e.target.closest(".student-card").querySelector("h5")?.textContent || "";
+    const studentCard = e.target.closest(".student-card");
+    const firstName =
+      studentCard.querySelector(".first-name")?.textContent || "";
+    const lastName = studentCard.querySelector(".last-name")?.textContent || "";
+    const student = `${firstName} ${lastName}`.trim() || firstName;
     if (student) {
       window.openGlobalDialog(
         `Message Student: ${student}`,
@@ -3448,6 +3473,22 @@ document.addEventListener("click", function (e) {
   }
 });
 
+// Student health buttons - use event delegation since they're added dynamically
+document.addEventListener("click", function (e) {
+  if (e.target && e.target.classList.contains("health-btn")) {
+    const studentCard = e.target.closest(".student-card");
+    const firstName =
+      studentCard.querySelector(".first-name")?.textContent || "";
+    const lastName = studentCard.querySelector(".last-name")?.textContent || "";
+    const student = `${firstName} ${lastName}`.trim() || firstName;
+
+    if (student) {
+      displayIndividualStudentHealth(student);
+      console.log(`Health button clicked for: ${student}`);
+    }
+  }
+});
+
 // Messages button
 document.getElementById("messagesBtn")?.addEventListener("click", function () {
   if (signOnDialog.open) signOnDialog.close();
@@ -3461,6 +3502,62 @@ document.getElementById("messagesBtn")?.addEventListener("click", function () {
   }
   console.log("Messages button clicked");
 });
+
+// Class Health button
+document
+  .getElementById("classHealthBtn")
+  ?.addEventListener("click", async function () {
+    console.log("Class Health button clicked");
+
+    // Use the external class health module
+    if (typeof initializeClassHealth === "function") {
+      await initializeClassHealth(window.activeTeacherUsername);
+    } else {
+      console.error("initializeClassHealth function not available");
+      window.openGlobalDialog(
+        "Class Health Error",
+        "Class health functionality is not available. Please refresh the page."
+      );
+    }
+  });
+
+// Helper function for class health messaging - called from classHealth.js
+window.sendClassHealthMessage = function (messageContent) {
+  const sentThreadId = sendMessage(
+    window.activeTeacherName,
+    `class-message-${window.activeTeacherName}`,
+    messageContent
+  );
+  window.closeGlobalDialog(); // Close the current dialog
+  messagesDialog.showModal(); // Open the messages dialog
+  renderThreadsPanel({ autoSelectFirst: false }); // Render threads, but don't auto-select the first one
+  // Find and click the specific thread item
+  const threadItem = messagesDialog.querySelector(
+    `[data-thread-id="${CSS.escape(sentThreadId)}"]`
+  );
+  if (threadItem) {
+    threadItem.click();
+  }
+};
+
+// Helper function for individual student health messaging - called from script.js functions
+window.sendStudentHealthMessage = function (studentName, messageContent) {
+  const sentThreadId = sendMessage(
+    window.activeTeacherName,
+    studentName,
+    messageContent
+  );
+  window.closeGlobalDialog(); // Close the current dialog
+  messagesDialog.showModal(); // Open the messages dialog
+  renderThreadsPanel({ autoSelectFirst: false }); // Render threads, but don't auto-select the first one
+  // Find and click the specific thread item
+  const threadItem = messagesDialog.querySelector(
+    `[data-thread-id="${CSS.escape(sentThreadId)}"]`
+  );
+  if (threadItem) {
+    threadItem.click();
+  }
+};
 
 // --- NEW LOGIC FOR MESSAGES DIALOG ---
 const threadsPanel = messagesDialog.querySelector(".threads-panel");
@@ -3588,12 +3685,20 @@ async function loadTeacherStudents(teacherUsername) {
           card.innerHTML = `
             <canvas class="student-pie"></canvas>
             <div class="student-info">
-              <h5>${student.memberName}</h5>
+              <div class="student-name">
+                <h5 class="first-name">${
+                  student.firstName || student.memberName
+                }</h5>
+                <h5 class="last-name">${student.lastName || ""}</h5>
+              </div>
               <p>Checking: $${student.checkingBalance}</p>
               <p>Savings: $${student.savingsBalance}</p>
               <p>Grade: ${student.grade}</p>
               <p>Lessons: ${student.lessonsCompleted}</p>
-              <button class="message-btn">Message</button>
+              <div class="student-card-buttons">
+                <button class="message-btn">Message</button>
+                <button class="health-btn">Health</button>
+              </div>
             </div>
           `;
           periodGrid.appendChild(card);
@@ -4494,12 +4599,18 @@ socket.on("studentAdded", (student) => {
     card.innerHTML = `
       <canvas class="student-pie"></canvas>
       <div class="student-info">
-        <h5>${student.memberName}</h5>
+        <div class="student-name">
+          <h5 class="first-name">${student.firstName || student.memberName}</h5>
+          <h5 class="last-name">${student.lastName || ""}</h5>
+        </div>
         <p>Checking: $${student.checkingBalance}</p>
         <p>Savings: $${student.savingsBalance}</p>
         <p>Grade: ${student.grade}</p>
         <p>Lessons: ${student.lessonsCompleted}</p>
-        <button class="message-btn">Message</button>
+        <div class="student-card-buttons">
+          <button class="message-btn">Message</button>
+          <button class="health-btn">Health</button>
+        </div>
       </div>
     `;
     periodGrid.appendChild(card);
@@ -4670,6 +4781,52 @@ socket.on("unitSaved", (data) => {
   }
 });
 
+// Listen for student financial updates to refresh class health dashboard
+socket.on("studentFinancialUpdate", (data) => {
+  console.log("Received student financial update:", data);
+
+  // Check if this update is for the current teacher
+  if (
+    window.activeTeacherName &&
+    data.teacherName === window.activeTeacherName
+  ) {
+    console.log(
+      `Financial update for ${data.studentName} in ${data.teacherName}'s class - refreshing health dashboard`
+    );
+
+    // Check if the class health dashboard is currently visible
+    const healthDashboard = document.querySelector(".class-health-dashboard");
+    if (healthDashboard) {
+      console.log("Class health dashboard is visible, refreshing...");
+
+      // Refresh the class health dashboard using the efficient refresh function
+      if (typeof refreshClassHealthDashboard === "function") {
+        // Use a small delay to ensure the database has been updated
+        setTimeout(async () => {
+          try {
+            await refreshClassHealthDashboard(window.activeTeacherUsername);
+            console.log("Class health dashboard refreshed successfully");
+          } catch (error) {
+            console.error("Error refreshing class health dashboard:", error);
+          }
+        }, 500); // 500ms delay to ensure DB consistency
+      } else if (typeof initializeClassHealth === "function") {
+        // Fallback to full initialization if refresh function is not available
+        setTimeout(async () => {
+          try {
+            await initializeClassHealth(window.activeTeacherUsername);
+            console.log(
+              "Class health dashboard refreshed successfully (via full init)"
+            );
+          } catch (error) {
+            console.error("Error refreshing class health dashboard:", error);
+          }
+        }, 500);
+      }
+    }
+  }
+});
+
 // Close button for messages dialog
 const closeMessagesDialogBtn = document.getElementById("closeMessagesDialog");
 if (closeMessagesDialogBtn) {
@@ -4698,10 +4855,20 @@ function openEmailDialog() {
           <h5 style="margin:0 0 0.7em 0;color:#00ffcc;font-weight:700;">Compose Email</h5>
           <div style="margin-bottom:0.7em;">
             <label style="font-weight:600;">To:</label>
-            <input type="text" id="emailRecipients" placeholder="Type or select from address book or group" style="padding:0.5em;border-radius:6px;border:none;width:100%;margin-top:0.3em;" />
+            <div style="display:flex;gap:0.5em;align-items:center;margin-top:0.3em;">
+              <input type="text" id="emailRecipients" placeholder="Type emails or use address book/groups below" style="padding:0.5em;border-radius:6px;border:none;flex:1;" />
+              <button type="button" id="clearRecipientsBtn" style="background:#ff6b6b;color:white;border:none;border-radius:4px;padding:0.5em 0.8em;font-size:0.8em;font-weight:600;cursor:pointer;white-space:nowrap;" title="Clear all recipients">Clear</button>
+            </div>
             <select id="groupSelect" style="margin-top:0.5em;width:100%;padding:0.4em;border-radius:6px;border:none;">
               <option value="">-- Select Group (optional) --</option>
             </select>
+          </div>
+          <div style="margin-bottom:0.7em;">
+            <label style="font-weight:600;">CC:</label>
+            <div style="display:flex;gap:0.5em;align-items:center;margin-top:0.3em;">
+              <input type="text" id="emailCC" placeholder="Optional: CC additional recipients" style="padding:0.5em;border-radius:6px;border:none;flex:1;" />
+              <button type="button" id="clearCCBtn" style="background:#ff6b6b;color:white;border:none;border-radius:4px;padding:0.5em 0.8em;font-size:0.8em;font-weight:600;cursor:pointer;white-space:nowrap;" title="Clear CC recipients">Clear</button>
+            </div>
           </div>
           <input type="text" id="emailSubject" placeholder="Subject" style="padding:0.5em;border-radius:6px;border:none;margin-bottom:0.7em;width:100%;" />
           <textarea id="emailMessage" placeholder="Message" style="min-height:100px;padding:0.5em;border-radius:6px;border:none;width:100%;margin-bottom:1em;"></textarea>
@@ -4712,9 +4879,10 @@ function openEmailDialog() {
         <div style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:1.2em;">
           <div style="background:rgba(255,255,255,0.06);padding:1em 1em 1.2em 1em;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
             <h6 style="margin:0 0 0.5em 0;color:#00ffcc;font-weight:700;">Address Book</h6>
+            <p style="font-size:0.8em;color:#ccc;margin:0 0 0.8em 0;">Click "To" or "CC" to add emails to recipients</p>
             <input type="text" id="addressInput" placeholder="Add email address" style="padding:0.4em;border-radius:6px;border:none;width:100%;margin-bottom:0.5em;" />
             <button type="button" id="saveAddressBtn" class="btn btn-sm" style="background:#00ffcc;color:#3b0a70;font-weight:700;width:100%;margin-bottom:0.7em;">Save Address</button>
-            <div id="addressBookList" style="max-height:80px;overflow:auto;"></div>
+            <div id="addressBookList" style="max-height:120px;overflow:auto;"></div>
           </div>
           <div style="background:rgba(255,255,255,0.06);padding:1em 1em 1.2em 1em;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
             <h6 style="margin:0 0 0.5em 0;color:#00ffcc;font-weight:700;">Templates</h6>
@@ -4728,10 +4896,11 @@ function openEmailDialog() {
           </div>
           <div style="background:rgba(255,255,255,0.06);padding:1em 1em 1.2em 1em;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
             <h6 style="margin:0 0 0.5em 0;color:#00ffcc;font-weight:700;">Groups</h6>
+            <p style="font-size:0.8em;color:#ccc;margin:0 0 0.8em 0;">Click + to add all group members to recipients</p>
             <input type="text" id="groupNameInput" placeholder="Group Name" style="padding:0.4em;border-radius:6px;border:none;width:100%;margin-bottom:0.5em;" />
             <div id="groupAddressSelect" style="margin-bottom:0.5em;"></div>
             <button type="button" id="saveGroupBtn" class="btn btn-sm" style="background:#00ffcc;color:#3b0a70;font-weight:700;width:100%;">Create Group</button>
-            <div id="groupList" style="max-height:60px;overflow:auto;margin-top:0.5em;"></div>
+            <div id="groupList" style="max-height:80px;overflow:auto;margin-top:0.5em;"></div>
           </div>
         </div>
       </div>
@@ -4748,6 +4917,8 @@ function openEmailDialog() {
   document.getElementById("saveTemplateBtn").onclick = saveTemplate;
   document.getElementById("saveGroupBtn").onclick = saveGroup;
   document.getElementById("groupSelect").onchange = handleGroupSelect;
+  document.getElementById("clearRecipientsBtn").onclick = clearRecipients;
+  document.getElementById("clearCCBtn").onclick = clearCC;
 }
 
 // Add this style block to the top of the file or inject into the DOM on page load
@@ -4777,21 +4948,234 @@ function openEmailDialog() {
     #templateSelect, #applyTemplateBtn {
       flex-shrink: 1;
     }
+    
+    /* Email address book styling */
+    .add-email-btn:hover {
+      background: #00d4a3 !important;
+      transform: scale(1.05);
+    }
+    
+    .add-cc-btn:hover {
+      background: #7e57c2 !important;
+      transform: scale(1.05);
+    }
+    
+    .add-group-btn:hover {
+      background: #7e57c2 !important;
+      transform: scale(1.05);
+    }
+    
+    #clearRecipientsBtn:hover, #clearCCBtn:hover {
+      background: #ff5252 !important;
+      transform: translateY(-1px);
+    }
+    
+    /* Animation for recipient field feedback */
+    #emailRecipients, #emailCC {
+      transition: background-color 0.3s ease;
+    }
   `;
   document.head.appendChild(style);
 })();
 
 // --- Address Book Logic ---
 window.addressBook = [];
+
+/**
+ * Add email address to the recipients field
+ * @param {string} email - Email address to add
+ */
+window.addEmailToRecipients = function (email) {
+  const recipientsField = document.getElementById("emailRecipients");
+  if (!recipientsField) return;
+
+  const currentValue = recipientsField.value.trim();
+  const emailsArray = currentValue
+    ? currentValue.split(",").map((e) => e.trim())
+    : [];
+
+  // Check if email is already in the list
+  if (emailsArray.includes(email)) {
+    // Flash the input to show it's already there
+    recipientsField.style.backgroundColor = "rgba(255, 204, 0, 0.3)";
+    setTimeout(() => {
+      recipientsField.style.backgroundColor = "";
+    }, 500);
+    return;
+  }
+
+  emailsArray.push(email);
+  recipientsField.value = emailsArray.join(", ");
+
+  // Visual feedback
+  recipientsField.style.backgroundColor = "rgba(0, 255, 204, 0.2)";
+  setTimeout(() => {
+    recipientsField.style.backgroundColor = "";
+  }, 500);
+
+  // Focus the field to show the addition
+  recipientsField.focus();
+  recipientsField.setSelectionRange(
+    recipientsField.value.length,
+    recipientsField.value.length
+  );
+};
+
+/**
+ * Add email address to the CC field
+ * @param {string} email - Email address to add
+ */
+window.addEmailToCC = function (email) {
+  const ccField = document.getElementById("emailCC");
+  if (!ccField) return;
+
+  const currentValue = ccField.value.trim();
+  const emailsArray = currentValue
+    ? currentValue.split(",").map((e) => e.trim())
+    : [];
+
+  // Check if email is already in the list
+  if (emailsArray.includes(email)) {
+    // Flash the input to show it's already there
+    ccField.style.backgroundColor = "rgba(255, 204, 0, 0.3)";
+    setTimeout(() => {
+      ccField.style.backgroundColor = "";
+    }, 500);
+    return;
+  }
+
+  emailsArray.push(email);
+  ccField.value = emailsArray.join(", ");
+
+  // Visual feedback
+  ccField.style.backgroundColor = "rgba(149, 117, 205, 0.2)";
+  setTimeout(() => {
+    ccField.style.backgroundColor = "";
+  }, 500);
+
+  // Focus the field to show the addition
+  ccField.focus();
+  ccField.setSelectionRange(ccField.value.length, ccField.value.length);
+};
+
+/**
+ * Add all members of a group to the recipients field
+ * @param {number} groupIndex - Index of the group in emailGroups array
+ */
+window.addGroupToRecipients = function (groupIndex) {
+  const recipientsField = document.getElementById("emailRecipients");
+  if (!recipientsField || !window.emailGroups[groupIndex]) return;
+
+  const group = window.emailGroups[groupIndex];
+  const currentValue = recipientsField.value.trim();
+  const existingEmails = currentValue
+    ? currentValue.split(",").map((e) => e.trim())
+    : [];
+
+  // Add group members that aren't already in the list
+  let addedCount = 0;
+  group.addresses.forEach((email) => {
+    if (!existingEmails.includes(email)) {
+      existingEmails.push(email);
+      addedCount++;
+    }
+  });
+
+  recipientsField.value = existingEmails.join(", ");
+
+  // Visual feedback
+  if (addedCount > 0) {
+    recipientsField.style.backgroundColor = "rgba(149, 117, 205, 0.2)";
+    setTimeout(() => {
+      recipientsField.style.backgroundColor = "";
+    }, 500);
+  } else {
+    // All emails were already in the list
+    recipientsField.style.backgroundColor = "rgba(255, 204, 0, 0.3)";
+    setTimeout(() => {
+      recipientsField.style.backgroundColor = "";
+    }, 500);
+  }
+
+  // Focus the field
+  recipientsField.focus();
+  recipientsField.setSelectionRange(
+    recipientsField.value.length,
+    recipientsField.value.length
+  );
+};
+
+/**
+ * Clear all recipients from the email field
+ */
+function clearRecipients() {
+  const recipientsField = document.getElementById("emailRecipients");
+  const groupSelect = document.getElementById("groupSelect");
+
+  if (recipientsField) {
+    recipientsField.value = "";
+    // Visual feedback
+    recipientsField.style.backgroundColor = "rgba(255, 107, 107, 0.2)";
+    setTimeout(() => {
+      recipientsField.style.backgroundColor = "";
+    }, 300);
+  }
+
+  // Also reset group selection
+  if (groupSelect) {
+    groupSelect.value = "";
+  }
+}
+
+/**
+ * Clear all CC recipients from the CC field
+ */
+function clearCC() {
+  const ccField = document.getElementById("emailCC");
+
+  if (ccField) {
+    ccField.value = "";
+    // Visual feedback
+    ccField.style.backgroundColor = "rgba(255, 107, 107, 0.2)";
+    setTimeout(() => {
+      ccField.style.backgroundColor = "";
+    }, 300);
+  }
+}
+
 function renderAddressBook() {
   const list = document.getElementById("addressBookList");
   if (!list) return;
-  list.innerHTML = window.addressBook
-    .map(
-      (addr, i) =>
-        `<div style='display:flex;align-items:center;gap:0.5em;'><span>${addr}</span><button type='button' style='background:none;border:none;color:#ffb3b3;cursor:pointer;font-size:1.1em;' onclick='window.removeAddress(${i})' title='Remove'>&times;</button></div>`
-    )
-    .join("");
+  list.innerHTML = window.addressBook.length
+    ? window.addressBook
+        .map(
+          (addr, i) =>
+            `<div style='display:flex;align-items:center;gap:0.3em;margin-bottom:0.4em;padding:0.3em;background:rgba(255,255,255,0.05);border-radius:6px;'>
+               <button type='button' 
+                       class='add-email-btn' 
+                       onclick='window.addEmailToRecipients("${addr}")' 
+                       style='background:#00ffcc;color:#3b0a70;border:none;border-radius:4px;padding:0.2em 0.4em;font-size:0.75em;font-weight:600;cursor:pointer;flex-shrink:0;'
+                       title='Add to TO recipients'>
+                 To
+               </button>
+               <button type='button' 
+                       class='add-cc-btn' 
+                       onclick='window.addEmailToCC("${addr}")' 
+                       style='background:#9575cd;color:white;border:none;border-radius:4px;padding:0.2em 0.4em;font-size:0.75em;font-weight:600;cursor:pointer;flex-shrink:0;'
+                       title='Add to CC recipients'>
+                 CC
+               </button>
+               <span style='flex:1;font-size:0.85em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-left:0.3em;' title='${addr}'>${addr}</span>
+               <button type='button' 
+                       style='background:none;border:none;color:#ffb3b3;cursor:pointer;font-size:1.1em;flex-shrink:0;' 
+                       onclick='window.removeAddress(${i})' 
+                       title='Remove'>
+                 &times;
+               </button>
+             </div>`
+        )
+        .join("")
+    : `<div style='color:#ccc;font-size:0.9em;text-align:center;padding:1em;'>No addresses saved yet.</div>`;
   renderGroupAddressSelect();
 }
 window.removeAddress = function (idx) {
@@ -4864,12 +5248,31 @@ function renderGroups() {
   const groupList = document.getElementById("groupList");
   const groupSelect = document.getElementById("groupSelect");
   if (groupList) {
-    groupList.innerHTML = window.emailGroups
-      .map(
-        (g, i) =>
-          `<div style='display:flex;align-items:center;gap:0.5em;'><span>${g.name} (${g.addresses.length})</span><button type='button' style='background:none;border:none;color:#ffb3b3;cursor:pointer;font-size:1.1em;' onclick='window.removeGroup(${i})' title='Remove'>&times;</button></div>`
-      )
-      .join("");
+    groupList.innerHTML = window.emailGroups.length
+      ? window.emailGroups
+          .map(
+            (g, i) =>
+              `<div style='display:flex;align-items:center;gap:0.3em;margin-bottom:0.4em;padding:0.3em;background:rgba(255,255,255,0.05);border-radius:6px;'>
+                 <button type='button' 
+                         class='add-group-btn' 
+                         onclick='window.addGroupToRecipients(${i})' 
+                         style='background:#9575cd;color:white;border:none;border-radius:4px;padding:0.2em 0.5em;font-size:0.8em;font-weight:600;cursor:pointer;flex-shrink:0;'
+                         title='Add all group members to recipients'>
+                   +
+                 </button>
+                 <span style='flex:1;font-size:0.85em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' title='${g.addresses.join(
+                   ", "
+                 )}'>${g.name} (${g.addresses.length})</span>
+                 <button type='button' 
+                         style='background:none;border:none;color:#ffb3b3;cursor:pointer;font-size:1.1em;flex-shrink:0;' 
+                         onclick='window.removeGroup(${i})' 
+                         title='Remove group'>
+                   &times;
+                 </button>
+               </div>`
+          )
+          .join("")
+      : `<div style='color:#ccc;font-size:0.9em;text-align:center;padding:1em;'>No groups created yet.</div>`;
   }
   if (groupSelect) {
     groupSelect.innerHTML =
@@ -4920,6 +5323,374 @@ function saveGroup() {
     }),
   });
 }
+
+/**
+ * Display individual student health dashboard
+ * @param {string} studentName - The student's full name
+ */
+async function displayIndividualStudentHealth(studentName) {
+  try {
+    console.log(`Fetching health data for student: "${studentName}"`);
+
+    // Fetch student's profile data
+    const studentsData = await fetchAllStudentFinancialData(
+      window.activeTeacherUsername
+    );
+
+    // Debug: Log all available student names
+    console.log(
+      "Available students in data:",
+      studentsData.map((s) => ({
+        name: s.name,
+        username: s.username,
+      }))
+    );
+
+    // Find the specific student - try multiple matching strategies
+    const studentData = studentsData.find((student) => {
+      const fullName = `${student.name}`.trim();
+      const username = student.username;
+
+      // Strategy 1: Exact match
+      if (fullName === studentName || username === studentName) {
+        return true;
+      }
+
+      // Strategy 2: Check if studentName is contained within the full name
+      // (handles cases like "Derryke Sumlin" matching "Derryke Sumlin Jr")
+      if (fullName.toLowerCase().includes(studentName.toLowerCase())) {
+        return true;
+      }
+
+      // Strategy 3: Check if the full name starts with studentName
+      // (another way to handle "Jr", "Sr", etc.)
+      if (fullName.toLowerCase().startsWith(studentName.toLowerCase())) {
+        return true;
+      }
+
+      // Strategy 4: Split names and check for substantial match
+      // (handles middle names, nicknames, etc.)
+      const studentNameParts = studentName
+        .toLowerCase()
+        .split(" ")
+        .filter((part) => part.length > 0);
+      const fullNameParts = fullName
+        .toLowerCase()
+        .split(" ")
+        .filter((part) => part.length > 0);
+
+      if (studentNameParts.length >= 2 && fullNameParts.length >= 2) {
+        // Check if first and last name match (ignoring middle names/suffixes)
+        const firstMatch = studentNameParts[0] === fullNameParts[0];
+        const lastMatch =
+          studentNameParts[studentNameParts.length - 1] ===
+          fullNameParts.find(
+            (part) => part === studentNameParts[studentNameParts.length - 1]
+          );
+        if (firstMatch && lastMatch) {
+          return true;
+        }
+      }
+
+      return false;
+    });
+
+    if (!studentData) {
+      console.error(`Student matching failed for: "${studentName}"`);
+      console.error(
+        "Available students:",
+        studentsData.map((s) => s.name)
+      );
+
+      window.openGlobalDialog(
+        "Student Not Found",
+        `Could not find financial data for student: "${studentName}"
+        
+Available students: ${studentsData.map((s) => s.name).join(", ")}
+
+This might be a name matching issue. Please check the console for debugging information.`
+      );
+      return;
+    }
+
+    console.log(
+      `Successfully found student data for: "${studentName}" -> matched with: "${studentData.name}"`
+    );
+
+    // Calculate the student's health
+    const studentHealth = calculateStudentHealth(studentData);
+    const healthStatus = getHealthStatus(studentHealth.overallHealth);
+
+    const content = `
+      <div class="individual-student-health" style="max-width: 100%; padding: 1rem; color: #fff;">
+        <div class="student-header" style="text-align: center; margin-bottom: 2rem; padding: 1.5rem; background: linear-gradient(135deg, rgba(59, 10, 112, 0.8), rgba(0, 255, 204, 0.2)); border-radius: 15px; border: 1px solid rgba(0, 255, 204, 0.3);">
+          <div class="student-name" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem;">${studentName}</div>
+          <div class="overall-health" style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+            <div class="health-score" style="font-size: 3rem; font-weight: 700; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); color: ${
+              healthStatus.color
+            };">
+              ${healthStatus.icon} ${studentHealth.overallHealth}%
+            </div>
+            <div class="health-label" style="font-size: 1.5rem; font-weight: 600;">${
+              healthStatus.label
+            } Financial Health</div>
+          </div>
+        </div>
+
+        <div class="financial-summary" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+          <div class="balances" style="background: rgba(59, 10, 112, 0.4); border-radius: 12px; padding: 1.5rem; border: 1px solid rgba(0, 255, 204, 0.2);">
+            <h4 style="color: #00ffcc; margin-bottom: 1rem; font-weight: 600;">Account Balances</h4>
+            <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+              <div style="display: flex; justify-content: space-between;">
+                <span>Checking:</span>
+                <span style="font-weight: 600; color: #00ffcc;">$${
+                  studentHealth.financialData.totalBalance -
+                  (studentData.savingsBalance || 0)
+                }</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span>Savings:</span>
+                <span style="font-weight: 600; color: #00ffcc;">$${
+                  studentData.savingsBalance || 0
+                }</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding-top: 0.5rem; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                <span style="font-weight: 600;">Total Balance:</span>
+                <span style="font-weight: 700; color: #00ffcc;">$${
+                  studentHealth.financialData.totalBalance
+                }</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="cash-flow" style="background: rgba(59, 10, 112, 0.4); border-radius: 12px; padding: 1.5rem; border: 1px solid rgba(0, 255, 204, 0.2);">
+            <h4 style="color: #00ffcc; margin-bottom: 1rem; font-weight: 600;">Monthly Cash Flow</h4>
+            <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+              <div style="display: flex; justify-content: space-between;">
+                <span>Income:</span>
+                <span style="font-weight: 600; color: #4CAF50;">$${
+                  studentHealth.financialData.monthlyIncome
+                }</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span>Expenses:</span>
+                <span style="font-weight: 600; color: #FF9800;">$${
+                  studentHealth.financialData.monthlyBills
+                }</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding-top: 0.5rem; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                <span style="font-weight: 600;">Net Income:</span>
+                <span style="font-weight: 700; color: ${
+                  studentHealth.financialData.monthlyIncome -
+                    studentHealth.financialData.monthlyBills >=
+                  0
+                    ? "#4CAF50"
+                    : "#F44336"
+                };">
+                  $${
+                    studentHealth.financialData.monthlyIncome -
+                    studentHealth.financialData.monthlyBills
+                  }
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="health-factors" style="background: rgba(59, 10, 112, 0.4); border-radius: 12px; padding: 1.5rem; border: 1px solid rgba(0, 255, 204, 0.2); margin-bottom: 2rem;">
+          <h4 style="color: #00ffcc; margin-bottom: 1rem; font-weight: 600;">Health Factor Breakdown</h4>
+          <div class="factors-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            ${Object.entries(studentHealth.factors)
+              .map(([factor, score]) => {
+                const factorStatus = getHealthStatus(score);
+                const factorName =
+                  {
+                    grade: "Academic Grade",
+                    checking: "Bill Coverage",
+                    savings: "Basic Savings",
+                    incomeRatio: "Income Ratio",
+                    emergencyFund: "Emergency Fund",
+                    debt: "Debt Health",
+                  }[factor] || factor;
+                const weight = studentHealth.weights[factor] * 100;
+
+                return `
+                  <div class="factor-item" style="display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem; background: rgba(0, 0, 0, 0.2); border-radius: 8px;">
+                    <div class="factor-header" style="display: flex; justify-content: between; align-items: center;">
+                      <div class="factor-name" style="font-size: 0.9rem; font-weight: 600;">${factorName}</div>
+                      <div class="factor-weight" style="font-size: 0.8rem; opacity: 0.7;">${weight}% weight</div>
+                    </div>
+                    <div class="factor-score" style="font-size: 1.2rem; font-weight: 700; color: ${
+                      factorStatus.color
+                    };">
+                      ${factorStatus.icon} ${Math.round(score)}%
+                    </div>
+                    <div class="factor-bar" style="height: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 4px; overflow: hidden;">
+                      <div class="factor-fill" style="height: 100%; background: linear-gradient(90deg, ${
+                        factorStatus.color
+                      }, ${
+                  factorStatus.color
+                }88); width: ${score}%; border-radius: 4px;"></div>
+                    </div>
+                  </div>
+                `;
+              })
+              .join("")}
+          </div>
+        </div>
+
+        <div class="recommendations" style="background: rgba(59, 10, 112, 0.4); border-radius: 12px; padding: 1.5rem; border: 1px solid rgba(0, 255, 204, 0.2);">
+          <h4 style="color: #FF9800; margin-bottom: 1rem; font-weight: 600;">💡 Recommendations for Improvement</h4>
+          <div class="recommendations-list">
+            ${
+              generateRecommendations(studentHealth).length > 0
+                ? generateRecommendations(studentHealth)
+                    .map(
+                      (recommendation) => `
+                    <div style="padding: 0.8rem; background: rgba(0, 0, 0, 0.2); border-radius: 8px; margin-bottom: 0.8rem; border-left: 3px solid #FF9800;">
+                      <span style="font-size: 0.9rem;">${recommendation}</span>
+                    </div>
+                  `
+                    )
+                    .join("")
+                : `<div style="padding: 1rem; text-align: center; color: #4CAF50; font-weight: 600;">
+                   🎉 Excellent work! Keep maintaining these healthy financial habits.
+                 </div>`
+            }
+          </div>
+        </div>
+
+        <div class="health-actions" style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; padding: 1rem; background: rgba(0, 0, 0, 0.1); border-radius: 12px; border: 1px solid rgba(0, 255, 204, 0.2); margin-top: 1.5rem;">
+          <button type="button" id="sendStudentHealthMessageBtn" class="btn" style="padding: 0.8rem 1.5rem; border-radius: 8px; border: none; background: linear-gradient(135deg, #00ffcc, #3b0a70); color: #fff; font-weight: 600; cursor: pointer;">
+            📧 Send Health Report to Student
+          </button>
+          <button type="button" id="exportStudentHealthBtn" class="btn" style="padding: 0.8rem 1.5rem; border-radius: 8px; border: none; background: linear-gradient(135deg, #00ffcc, #3b0a70); color: #fff; font-weight: 600; cursor: pointer;">
+            📊 Export Student Report
+          </button>
+        </div>
+      </div>
+    `;
+
+    window.openGlobalDialog(
+      `${studentName} - Financial Health Report`,
+      content
+    );
+
+    // Add event listeners for the action buttons
+    document
+      .getElementById("sendStudentHealthMessageBtn")
+      ?.addEventListener("click", () => {
+        sendStudentHealthMessage(studentName, studentHealth);
+      });
+
+    document
+      .getElementById("exportStudentHealthBtn")
+      ?.addEventListener("click", () => {
+        exportStudentHealthReport(studentName, studentData, studentHealth);
+      });
+  } catch (error) {
+    console.error("Error displaying individual student health:", error);
+    window.openGlobalDialog(
+      "Error",
+      `Unable to load health data for ${studentName}. Please try again.`
+    );
+  }
+}
+
+/**
+ * Send health report message to individual student
+ * @param {string} studentName - Student's name
+ * @param {Object} studentHealth - Student's health data
+ */
+function sendStudentHealthMessage(studentName, studentHealth) {
+  const healthStatus = getHealthStatus(studentHealth.overallHealth);
+  const strongestFactor = getStrongestFactor(studentHealth.factors);
+
+  const message = `
+Hi ${studentName}!
+
+Here's your personal financial health report:
+
+Overall Health: ${healthStatus.icon} ${studentHealth.overallHealth}% (${
+    healthStatus.label
+  })
+
+Your strongest area: ${strongestFactor}
+Monthly Income: $${studentHealth.financialData.monthlyIncome}
+Monthly Expenses: $${studentHealth.financialData.monthlyBills}
+Net Income: $${
+    studentHealth.financialData.monthlyIncome -
+    studentHealth.financialData.monthlyBills
+  }
+
+${
+  generateRecommendations(studentHealth).length > 0
+    ? "Areas for improvement:\n" +
+      generateRecommendations(studentHealth)
+        .map((rec) => `• ${rec}`)
+        .join("\n")
+    : "🎉 Great job! Keep up the excellent financial habits!"
+}
+
+Keep building your financial literacy skills!
+  `.trim();
+
+  window.openGlobalDialog(
+    `Send Health Report to ${studentName}`,
+    `Send personalized financial health report:`,
+    {
+      recipient: studentName,
+      onSend: (messageContent) => {
+        const finalMessage = messageContent || message;
+        // Use the helper function
+        if (typeof window.sendStudentHealthMessage === "function") {
+          window.sendStudentHealthMessage(studentName, finalMessage);
+        } else {
+          console.error(
+            "sendStudentHealthMessage helper function not available"
+          );
+          window.closeGlobalDialog();
+        }
+      },
+    }
+  );
+}
+
+/**
+ * Export individual student health report
+ * @param {string} studentName - Student's name
+ * @param {Object} studentData - Student's raw data
+ * @param {Object} studentHealth - Student's calculated health
+ */
+function exportStudentHealthReport(studentName, studentData, studentHealth) {
+  const report = {
+    generatedAt: new Date().toISOString(),
+    studentName: studentName,
+    rawData: studentData,
+    healthCalculation: studentHealth,
+    summary: {
+      overallHealth: studentHealth.overallHealth,
+      strongestFactor: getStrongestFactor(studentHealth.factors),
+      weakestFactor: getWeakestFactor(studentHealth.factors),
+      recommendations: generateRecommendations(studentHealth),
+    },
+  };
+
+  const blob = new Blob([JSON.stringify(report, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${studentName.replace(/\s+/g, "-")}-health-report-${
+    new Date().toISOString().split("T")[0]
+  }.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function handleGroupSelect(e) {
   const idx = e.target.value;
   if (window.emailGroups[idx]) {
@@ -4931,24 +5702,27 @@ function handleGroupSelect(e) {
 // --- Compose Email Logic ---
 function sendEmail() {
   const recipients = document.getElementById("emailRecipients").value.trim();
+  const cc = document.getElementById("emailCC").value.trim();
   const subject = document.getElementById("emailSubject").value.trim();
   const message = document.getElementById("emailMessage").value.trim();
   if (!recipients) return alert("Please enter at least one recipient.");
+
   // Send to backend for logging and possible delivery
   fetch(`${API_BASE_URL}/sendEmail`, {
-    // Changed from 5000 to 3000
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       sender: window.activeTeacherUsername || "Unknown",
       recipients,
+      cc: cc || null, // Include CC if provided
       subject,
       message,
     }),
   })
     .then((response) => {
       if (response.ok) {
-        alert(`Email sent to: ${recipients}\nSubject: ${subject}`);
+        const ccText = cc ? `\nCC: ${cc}` : "";
+        alert(`Email sent to: ${recipients}${ccText}\nSubject: ${subject}`);
       } else {
         console.error("Failed to send email:", response.status);
         alert(
