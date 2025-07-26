@@ -74,7 +74,9 @@
 
     <div class="dashboard hidden-until-login">
       <div class="sidebar">
-        <div class="class-health-score">Class Health: 86%</div>
+        <button class="btn sidebar-action" id="classHealthBtn">
+          📊 Class Financial Health
+        </button>
         <button class="btn sidebar-action" id="registerStudentsBtn">
           Register Students
         </button>
@@ -190,6 +192,7 @@
     </dialog>
 
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="classHealth.js"></script>
     <script src="script.js" type="module"></script>
   </body>
 </html>
