@@ -1,52 +1,250 @@
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap");
+/* =================================================================
+   TRINITY CAPITAL TEACHER DASHBOARD - MODERN UI
+   ================================================================= */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
+
+/* CSS Custom Properties */
+:root {
+  /* Primary Colors */
+  --primary-color: #667eea;
+  --secondary-color: #764ba2;
+  --accent-color: #00ffcc;
+  --accent-secondary: #ff6b6b;
+
+  /* Gradients */
+  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --accent-gradient: linear-gradient(135deg, #00ffcc 0%, #00d4aa 100%);
+  --error-gradient: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  --success-gradient: linear-gradient(135deg, #00ffcc 0%, #00d4aa 100%);
+
+  /* Glass Morphism */
+  --bg-glass: rgba(255, 255, 255, 0.05);
+  --bg-glass-hover: rgba(255, 255, 255, 0.1);
+  --bg-glass-strong: rgba(255, 255, 255, 0.15);
+
+  /* Background */
+  --bg-primary: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  --bg-secondary: rgba(26, 32, 44, 0.8);
+  --bg-card: rgba(255, 255, 255, 0.08);
+
+  /* Text Colors */
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.8);
+  --text-muted: rgba(255, 255, 255, 0.6);
+  --text-accent: #00ffcc;
+
+  /* Shadows */
+  --shadow-sm: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 8px 25px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.2);
+  --shadow-glow: 0 0 30px rgba(102, 126, 234, 0.3);
+
+  /* Transitions */
+  --transition-fast: 0.2s ease-in-out;
+  --transition-medium: 0.3s ease-in-out;
+  --transition-slow: 0.5s ease-in-out;
+
+  /* Border Radius */
+  --radius-sm: 10px;
+  --radius-md: 15px;
+  --radius-lg: 20px;
+  --radius-xl: 25px;
+}
+
+/* =================================================================
+   GLOBAL STYLES
+   ================================================================= */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
 
 body {
-  background-color: #f3f0ff;
-  font-family: "Montserrat", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  color: #1e1e2f;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
 }
+
+/* Background Effects */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+      circle at 20% 80%,
+      rgba(102, 126, 234, 0.2) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 80% 20%,
+      rgba(118, 75, 162, 0.2) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 40% 40%,
+      rgba(0, 255, 204, 0.1) 0%,
+      transparent 50%
+    );
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Selection styling */
+::selection {
+  background: var(--accent-gradient);
+  color: #1a202c;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-gradient);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-gradient);
+}
+
+/* =================================================================
+   NAVBAR STYLES
+   ================================================================= */
 
 .navbar {
-  background-color: #3b0a70;
-  color: white;
-  border-bottom: none;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-md);
+  margin: 1rem;
+  border-radius: var(--radius-lg);
+  padding: 1rem 2rem;
+  position: relative;
+  z-index: 1000;
 }
 
-.navbar .navbar-brand,
-.navbar .nav-link,
-.navbar-text {
-  color: white;
+.navbar-brand {
+  font-weight: 800;
+  font-size: 1.5rem;
+  background: var(--accent-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
 }
+
+.navbar-text {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Hide until login */
+.hidden-until-login {
+  display: none;
+}
+
+/* =================================================================
+   DASHBOARD LAYOUT
+   ================================================================= */
 
 .dashboard {
   display: flex;
-  flex-wrap: wrap;
-  padding: 1rem;
+  gap: 2rem;
+  padding: 0 2rem 2rem 2rem;
+  min-height: calc(100vh - 140px);
 }
 
+/* =================================================================
+   SIDEBAR STYLES
+   ================================================================= */
+
 .sidebar {
-  width: 300px;
-  padding: 1rem;
-  background-color: #240a5e;
-  border-radius: 1rem;
-  color: white;
-  margin-right: 1rem;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+  width: 320px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  box-shadow: var(--shadow-lg);
+  height: fit-content;
+  position: sticky;
+  top: 2rem;
 }
 
 .sidebar h4 {
-  font-weight: bold;
-  margin-bottom: 1rem;
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+  background: var(--primary-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-align: center;
 }
 
-.sidebar .btn {
-  background-color: #3b0a70;
-  color: white;
+.sidebar-action {
   width: 100%;
-  margin-bottom: 0.75rem;
-  border: none;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1rem;
+  background: var(--bg-glass);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all var(--transition-medium);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-action::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: var(--accent-gradient);
+  transition: left var(--transition-medium);
+  z-index: -1;
+}
+
+.sidebar-action:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
+  border-color: var(--accent-color);
+  color: #ffffff;
+}
+
+.sidebar-action:hover::before {
+  left: 0;
+}
+
+.sidebar-action:active {
+  transform: translateY(0);
 }
 
 .sidebar .btn:hover {
@@ -61,127 +259,449 @@ body {
   color: #00ffcc;
 }
 
+/* =================================================================
+   STUDENTS CONTAINER
+   ================================================================= */
+
 .students-container {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  overflow-y: auto;
+  max-height: calc(100vh - 140px);
+  padding-right: 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 255, 204, 0.3) transparent;
+}
+
+.students-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.students-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+}
+
+.students-container::-webkit-scrollbar-thumb {
+  background: var(--accent-gradient);
+  border-radius: var(--radius-sm);
+}
+
+.students-container::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-gradient);
 }
 
 .class-period {
-  margin-bottom: 2rem;
-  border-top: 3px solid #3b0a70;
-  padding-top: 1rem;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 3rem; /* Further increased margin between periods */
+  position: relative;
+  overflow: hidden;
+  max-height: 750px; /* Significantly increased max height */
+  display: flex;
+  flex-direction: column;
+}
+
+.class-period::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: var(--accent-gradient);
 }
 
 .class-period h4 {
-  color: #3b0a70;
-  margin-bottom: 1rem;
-  padding-left: 0.5rem;
+  font-weight: 700;
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  background: var(--primary-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0; /* Prevent header from shrinking */
+  position: sticky;
+  top: 0;
+  background-color: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  z-index: 2;
+  padding: 0.5rem 0;
+  margin: -0.5rem -1.5rem 1.5rem -1.5rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+.class-period h4::before {
+  content: "📚";
+  font-size: 1.2rem;
 }
 
 .students-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  row-gap: 1rem; /* Exactly 1rem vertical space between cards */
+  column-gap: 1.5rem; /* Horizontal spacing */
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 0.5rem;
+  padding-bottom: 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 255, 204, 0.3) transparent;
+  align-items: start;
+  grid-auto-rows: min-content; /* Let rows size to their content */
 }
 
+.students-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.students-grid::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+}
+
+.students-grid::-webkit-scrollbar-thumb {
+  background: var(--accent-gradient);
+  border-radius: var(--radius-sm);
+}
+
+.students-grid::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-gradient);
+}
+
+/* =================================================================
+   STUDENT CARDS
+   ================================================================= */
+
 .student-card {
-  background-color: white;
-  border-radius: 1rem;
-  padding: 0.75rem;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-md);
+  padding: 1.75rem;
+  box-shadow: var(--shadow-md);
   position: relative;
   display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  min-height: 160px;
+  flex-direction: column;
+  gap: 1.25rem;
+  transition: all var(--transition-medium);
+  overflow: visible;
+  height: auto;
+  min-height: 450px;
+  margin: 0; /* Remove all margins - use grid gap for spacing */
+  z-index: 1;
+}
+
+.student-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--accent-gradient);
+  transform: scaleX(0);
+  transition: transform var(--transition-medium);
+}
+
+.student-card:hover {
+  transform: translateY(-3px); /* Reduced hover lift to prevent overlap */
+  box-shadow: var(--shadow-glow);
+  border-color: rgba(0, 255, 204, 0.4);
+  background: rgba(255, 255, 255, 0.18);
+  z-index: 10; /* Ensure hovered card is on top */
+}
+
+.student-card:hover::before {
+  transform: scaleX(1);
 }
 
 .student-name {
-  position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
   display: flex;
   flex-direction: column;
-  line-height: 1.1;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  position: relative;
+  flex-shrink: 0; /* Prevent name section from shrinking */
 }
 
 .student-card .first-name {
-  font-weight: bold;
-  color: #3b0a70;
-  font-size: 1rem;
+  font-weight: 800;
+  font-size: 1.3rem;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   margin: 0;
-  margin-bottom: 0.1rem;
+  text-align: center;
+  background: var(--primary-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  /* Fallback for better visibility */
+  -webkit-text-stroke: 0.5px rgba(255, 255, 255, 0.8);
 }
 
 .student-card .last-name {
-  font-weight: bold;
-  color: #3b0a70;
-  font-size: 1rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   margin: 0;
+  text-align: center;
 }
 
 .student-pie {
-  width: 80px;
-  height: 80px;
-  margin-bottom: 1rem;
+  width: 100px;
+  height: 100px;
+  align-self: center;
+  margin: 0.75rem auto; /* Reduced margin for better space usage */
+  border-radius: 50%;
+  box-shadow: var(--shadow-md);
+  flex-shrink: 0; /* Prevent the pie from shrinking */
+  display: block; /* Ensure it maintains its dimensions */
 }
 
 .student-info {
-  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  font-size: 0.95rem;
   flex-grow: 1;
-  padding-left: 1rem;
-  font-size: 0.85rem;
+  margin-bottom: 1rem; /* Ensure space before buttons */
+  min-height: 120px; /* Ensure minimum space for student info */
 }
+
+.student-info p {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  margin: 0;
+  font-weight: 600;
+  border-left: 3px solid transparent;
+  transition: all var(--transition-fast);
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  font-size: 0.95rem;
+}
+
+.student-info p:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-left-color: var(--accent-color);
+  color: #ffffff;
+  transform: translateX(2px);
+}
+
+.student-info p strong {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.student-info p .value {
+  color: var(--accent-color);
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.student-info p:nth-child(1) {
+  border-left-color: #4ade80;
+} /* Checking */
+.student-info p:nth-child(2) {
+  border-left-color: #60a5fa;
+} /* Savings */
+.student-info p:nth-child(3) {
+  border-left-color: #f59e0b;
+} /* Grade */
+.student-info p:nth-child(4) {
+  border-left-color: #8b5cf6;
+} /* Lessons */
 
 .student-card-buttons {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: auto; /* Push buttons to bottom */
+  flex-shrink: 0; /* Prevent buttons from shrinking */
+  padding-top: 0.5rem; /* Add some spacing from content above */
 }
 
 .message-btn,
 .health-btn {
-  background-color: #3b0a70;
-  color: white;
-  border: none;
-  padding: 0.3rem 0.75rem;
-  border-radius: 0.5rem;
-  transition: background-color 0.2s ease;
-  font-size: 0.85rem;
   flex: 1;
+  padding: 0.875rem 1.25rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all var(--transition-medium);
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-.message-btn:hover,
-.health-btn:hover {
-  background-color: #4c0e8a;
+.message-btn {
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(15px);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.message-btn:hover {
+  background: var(--primary-gradient);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  color: #ffffff;
+  border-color: transparent;
 }
 
 .health-btn {
-  background-color: #00ffcc;
-  color: #3b0a70;
-  font-weight: 600;
+  background: var(--accent-gradient);
+  color: #1a202c;
+  font-weight: 800;
+  text-shadow: none;
 }
 
 .health-btn:hover {
-  background-color: #00e6b8;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 255, 204, 0.4);
+  filter: brightness(1.1);
 }
 
 .hidden-until-login {
   display: none !important;
 }
 
-/* Dialog Styles */
+/* Modern Responsive Enhancements */
+@media (max-width: 1200px) {
+  .students-grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+
+  .sidebar {
+    width: 60px;
+  }
+
+  .sidebar .btn {
+    padding: 0.5rem;
+  }
+
+  .sidebar .btn span {
+    display: none;
+  }
+
+  .main-content {
+    margin-left: 60px;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding: 1rem;
+  }
+
+  .navbar {
+    padding: 0.5rem 1rem;
+  }
+
+  .students-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .period-card {
+    padding: 1rem;
+  }
+}
+
+/* Loading States and Animations */
+.student-card {
+  animation: fadeInUp 0.4s ease forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.student-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.student-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.student-card:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.student-card:nth-child(4) {
+  animation-delay: 0.4s;
+}
+.student-card:nth-child(5) {
+  animation-delay: 0.5s;
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Enhanced Focus States for Accessibility */
+.btn:focus,
+.student-card:focus {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--border-radius);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-gradient);
+  border-radius: var(--border-radius);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--secondary-gradient);
+}
+
+/* Modern Dialog Styles */
 dialog#globalDialog {
-  background: #3b0a70;
-  color: #fff;
-  border: none;
-  border-radius: 20px;
-  font-family: "Montserrat", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.2);
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border-radius: var(--radius-xl);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  box-shadow: var(--shadow-lg);
   padding: 0;
   overflow: hidden;
   max-height: 90vh;
@@ -189,6 +709,11 @@ dialog#globalDialog {
   width: 60vw;
   height: 80vh;
   flex-direction: column;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
 }
 
 dialog#globalDialog[open] {
@@ -196,54 +721,87 @@ dialog#globalDialog[open] {
 }
 
 dialog#globalDialog::backdrop {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
 }
 
 #globalDialog .dialog-header {
-  font-family: "Montserrat", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
   font-weight: 700;
   font-size: 1.3em;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.08);
-  border-top-left-radius: 20px;
-  border-top-right-radius: 20px;
+  color: var(--text-primary);
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(15px);
+  border-top-left-radius: var(--radius-xl);
+  border-top-right-radius: var(--radius-xl);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1em 1.2em 0 1.2em;
+  padding: 1.5em 2em;
   flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 #globalDialog .dialog-header > span {
   flex: 1;
   text-align: center;
+  background: var(--primary-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 #globalDialog .dialog-body {
-  font-family: "Montserrat", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
   font-weight: 400;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 1em;
   text-align: center;
-  padding: 1.2em;
+  padding: 2em;
   flex: 1;
   overflow-y: auto;
   overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
 }
 
 #globalDialog .dialog-body::-webkit-scrollbar {
-  display: none;
+  width: 8px;
+}
+
+#globalDialog .dialog-body::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+}
+
+#globalDialog .dialog-body::-webkit-scrollbar-thumb {
+  background: var(--primary-gradient);
+  border-radius: var(--radius-sm);
 }
 
 #closeGlobalDialog {
-  color: #fff;
-  font-family: "Montserrat", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background: transparent;
-  border: none;
+  color: var(--text-primary);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  background: var(--bg-glass);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
   font-size: 1.2em;
   cursor: pointer;
+  transition: all var(--transition-medium);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#closeGlobalDialog:hover {
+  background: var(--accent-gradient);
+  color: #1a202c;
+  transform: scale(1.1);
 }
 
 /* --- Create Lesson Modal Layout --- */
@@ -289,24 +847,31 @@ dialog#globalDialog::backdrop {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.75em;
-  padding: 1.5em;
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 12px;
+  gap: 1rem;
+  padding: 2rem;
+  background: var(--bg-glass);
+  backdrop-filter: blur(15px);
+  border-radius: var(--radius-md);
   border: 1px solid rgba(255, 255, 255, 0.1);
   align-self: flex-start; /* Align to top */
+  box-shadow: var(--shadow-md);
 }
 
 .lesson-actions-panel .btn {
-  color: #ffffff; /* Bright white text */
+  color: var(--text-primary); /* Bright white text */
   font-weight: 600; /* Bolder text */
-  border: none;
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.5rem;
+  transition: all var(--transition-medium);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
 }
 
 .lesson-actions-panel .btn:hover {
   transform: translateY(-2px);
-  filter: brightness(1.15);
+  box-shadow: var(--shadow-md);
+  border-color: var(--accent-color);
 }
 
 #createUnitBtn {
@@ -333,11 +898,26 @@ dialog#globalDialog::backdrop {
 
 .dialog-section-title {
   font-weight: 700;
-  color: #00ffcc;
-  margin: 0 0 0.75em 0;
-  padding-bottom: 0.5em;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  font-size: 1.1em;
+  color: var(--text-primary);
+  background: var(--accent-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid rgba(0, 255, 204, 0.3);
+  font-size: 1.2em;
+  position: relative;
+}
+
+.dialog-section-title::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 50px;
+  height: 2px;
+  background: var(--accent-gradient);
 }
 
 .form-group {
@@ -356,13 +936,30 @@ dialog#globalDialog::backdrop {
 .dialog-textarea,
 .dialog-select {
   width: 100%;
-  padding: 0.7em 0.8em;
-  border-radius: 6px;
-  border: none;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--bg-glass);
+  backdrop-filter: blur(10px);
+  color: var(--text-primary);
   font-size: 1em;
-  font-family: inherit;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  transition: all var(--transition-medium);
+}
+
+.dialog-input:focus,
+.dialog-textarea:focus,
+.dialog-select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(0, 255, 204, 0.2);
+  background: var(--bg-glass-hover);
+}
+
+.dialog-input::placeholder,
+.dialog-textarea::placeholder {
+  color: var(--text-muted);
 }
 
 .dialog-textarea {
@@ -380,13 +977,16 @@ select.dialog-input option {
 
 /* Messages Dialog Styles */
 .lesson-builder-section {
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--bg-glass);
+  backdrop-filter: blur(15px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 1.5em;
+  border-radius: var(--radius-md);
+  padding: 2rem;
   display: flex;
   flex-direction: column;
-  gap: 1em;
+  gap: 1.5rem;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 2rem;
 }
 
 .block-controls {
@@ -399,55 +999,74 @@ select.dialog-input option {
 }
 
 .btn-modal-action {
-  background-color: rgba(255, 255, 255, 0.15);
-  color: #fff;
+  background: var(--bg-glass);
+  backdrop-filter: blur(10px);
+  color: var(--text-primary);
   font-weight: 600;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 0.5em 1em;
-  border-radius: 6px;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all var(--transition-medium);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
 }
 
 .btn-modal-action:hover {
-  background-color: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.4);
+  background: var(--bg-glass-hover);
+  border-color: var(--accent-color);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .content-block,
 .condition-block {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  padding: 1em 1.5em 1.5em 1.5em;
-  margin-bottom: 1em;
+  background: var(--bg-glass);
+  backdrop-filter: blur(15px);
+  border-radius: var(--radius-md);
+  padding: 1.5rem 2rem 2rem 2rem;
+  margin-bottom: 1.5rem;
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.15);
   display: flex;
   flex-direction: column;
-  gap: 0.75em;
+  gap: 1rem;
+  transition: all var(--transition-medium);
+}
+
+.content-block:hover,
+.condition-block:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: var(--bg-glass-hover);
 }
 
 .remove-btn {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  border: none;
+  top: 12px;
+  right: 12px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(10px);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  line-height: 24px;
+  width: 28px;
+  height: 28px;
+  line-height: 28px;
   text-align: center;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: bold;
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: all var(--transition-medium);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .remove-btn:hover {
-  background: #ff5252;
-  color: #fff;
+  background: var(--error-gradient);
+  color: #ffffff;
+  transform: scale(1.1);
+  border-color: transparent;
 }
 
 .condition-block .form-group {
@@ -479,13 +1098,16 @@ select.dialog-input option {
   padding-left: 1em;
   border-left: 2px solid #9575cd;
 }
+/* Messages Dialog Styles */
 dialog#messagesDialog {
-  background: #3b0a70;
-  color: #fff;
-  border: none;
-  border-radius: 20px;
-  font-family: "Montserrat", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.2);
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border-radius: var(--radius-xl);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  box-shadow: var(--shadow-lg);
   padding: 0;
   overflow: hidden;
   max-height: 90vh;
@@ -493,6 +1115,11 @@ dialog#messagesDialog {
   width: 80vw; /* Wider for messenger layout */
   height: 80vh;
   flex-direction: column;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
 }
 
 dialog#messagesDialog[open] {
@@ -500,35 +1127,58 @@ dialog#messagesDialog[open] {
 }
 
 dialog#messagesDialog::backdrop {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
 }
 
 #messagesDialog .dialog-header {
-  font-family: "Montserrat", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
   font-weight: 700;
   font-size: 1.3em;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.08);
-  border-top-left-radius: 20px;
-  border-top-right-radius: 20px;
+  color: var(--text-primary);
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(15px);
+  border-top-left-radius: var(--radius-xl);
+  border-top-right-radius: var(--radius-xl);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1em 1.2em 0 1.2em;
+  padding: 1.5em 2em;
   flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 #messagesDialog .dialog-header > span {
   flex: 1;
   text-align: center;
+  background: var(--primary-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 #closeMessagesDialog {
-  color: #fff;
-  background: transparent;
-  border: none;
+  color: var(--text-primary);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  background: var(--bg-glass);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
   font-size: 1.2em;
   cursor: pointer;
+  transition: all var(--transition-medium);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#closeMessagesDialog:hover {
+  background: var(--accent-gradient);
+  color: #1a202c;
+  transform: scale(1.1);
 }
 
 #messagesDialog .messages-dialog-body {
@@ -541,25 +1191,45 @@ dialog#messagesDialog::backdrop {
 .threads-panel {
   width: 30%; /* Adjust as needed */
   min-width: 200px;
-  background-color: rgba(0, 0, 0, 0.15); /* Slightly darker background */
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(15px);
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   overflow-y: auto;
   padding: 1em 0;
 }
 
 .thread-item {
-  padding: 0.8em 1.2em;
+  padding: 1rem 1.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all var(--transition-medium);
+  position: relative;
+}
+
+.thread-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 100%;
+  background: var(--accent-gradient);
+  transform: scaleY(0);
+  transition: transform var(--transition-medium);
 }
 
 .thread-item:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background: var(--bg-glass-hover);
+  transform: translateX(5px);
+}
+
+.thread-item:hover::before {
+  transform: scaleY(1);
 }
 
 .thread-item.active-thread {
-  background-color: rgba(255, 255, 255, 0.2);
+  background: var(--bg-glass-hover);
+  border-left: 3px solid var(--accent-color);
 }
 
 .thread-name {
@@ -664,41 +1334,58 @@ dialog#messagesDialog::backdrop {
 
 .message-input-area input {
   flex: 1;
-  padding: 0.7em 1em;
-  border-radius: 20px;
-  border: none;
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  padding: 1rem 1.5rem;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--bg-glass);
+  backdrop-filter: blur(10px);
+  color: var(--text-primary);
   font-size: 1em;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  transition: all var(--transition-medium);
+}
+
+.message-input-area input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(0, 255, 204, 0.2);
+  background: var(--bg-glass-hover);
 }
 
 .message-input-area input::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-muted);
 }
 
 .message-input-area button {
-  background-color: #00ffcc;
-  color: #3b0a70;
+  background: var(--accent-gradient);
+  color: #1a202c;
   border: none;
-  border-radius: 20px;
-  padding: 0.7em 1.5em;
+  border-radius: var(--radius-xl);
+  padding: 1rem 2rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all var(--transition-medium);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  box-shadow: var(--shadow-md);
 }
 
 .message-input-area button:hover {
-  background-color: #00e6b8;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 255, 204, 0.4);
 }
 
 /* Sign-On Dialog Styles */
 dialog#signOnDialog {
-  background: #3b0a70;
-  color: #fff;
-  border: none;
-  border-radius: 20px;
-  font-family: "Montserrat", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.2);
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border-radius: var(--radius-xl);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  box-shadow: var(--shadow-lg);
   width: 400px;
   max-width: 90vw;
   max-height: 90vh;
@@ -706,6 +1393,11 @@ dialog#signOnDialog {
   overflow: hidden;
   text-align: center;
   flex-direction: column;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
 }
 
 dialog#signOnDialog[open] {
@@ -713,66 +1405,109 @@ dialog#signOnDialog[open] {
 }
 
 dialog#signOnDialog::backdrop {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
 }
 
 #signOnDialog .dialog-header {
   font-weight: 700;
   font-size: 1.3em;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.08);
-  border-top-left-radius: 20px;
-  border-top-right-radius: 20px;
-  padding: 1.2em 1em 0.5em 1em;
+  color: var(--text-primary);
+  background: var(--bg-glass-strong);
+  backdrop-filter: blur(15px);
+  border-top-left-radius: var(--radius-xl);
+  border-top-right-radius: var(--radius-xl);
+  padding: 1.5em 2em 1em 2em;
   flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--primary-gradient);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 #signOnDialog .dialog-body {
   font-weight: 400;
-  color: #fff;
+  color: var(--text-primary);
   font-size: 1em;
-  padding: 1.2em 1.5em 1.5em 1.5em;
+  padding: 2em 2.5em 2.5em 2.5em;
   flex: 1;
   overflow-y: auto;
   overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
 }
 
 #signOnDialog .dialog-body::-webkit-scrollbar {
-  display: none;
+  width: 8px;
+}
+
+#signOnDialog .dialog-body::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-sm);
+}
+
+#signOnDialog .dialog-body::-webkit-scrollbar-thumb {
+  background: var(--primary-gradient);
+  border-radius: var(--radius-sm);
 }
 
 #signOnDialog input {
   width: 100%;
   max-width: 300px;
-  margin: 0.5em 0 1em 0;
-  padding: 0.7em 1em;
-  border-radius: 8px;
-  border: none;
+  margin: 0.75em 0 1.5em 0;
+  padding: 1rem 1.5rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--bg-glass);
+  backdrop-filter: blur(10px);
+  color: var(--text-primary);
   font-size: 1.1em;
-  font-family: "Montserrat", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  transition: all var(--transition-medium);
+}
+
+#signOnDialog input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(0, 255, 204, 0.2);
+  background: var(--bg-glass-hover);
+}
+
+#signOnDialog input::placeholder {
+  color: var(--text-muted);
 }
 
 #signOnDialog button[type="submit"] {
   width: 100%;
   max-width: 300px;
-  padding: 0.7em 0;
+  padding: 1rem 0;
   font-size: 1.1em;
-  border-radius: 8px;
-  background: #00ffcc;
-  color: #3b0a70;
+  border-radius: var(--radius-md);
+  background: var(--accent-gradient);
+  color: #1a202c;
   font-weight: 700;
   border: none;
   cursor: pointer;
-  margin-top: 0.5em;
+  margin-top: 1rem;
+  transition: all var(--transition-medium);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  box-shadow: var(--shadow-md);
+}
+
+#signOnDialog button[type="submit"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 255, 204, 0.4);
 }
 
 #signOnDialog .error-message {
-  color: #ffb3b3;
-  margin-bottom: 0.5em;
+  color: #ff6b6b;
+  margin-bottom: 1rem;
   font-size: 1em;
   min-height: 1.5em;
+  font-weight: 500;
 }
 
 /* --- Register Students Dialog --- */
