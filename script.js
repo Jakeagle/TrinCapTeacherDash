@@ -1,6 +1,30 @@
 // Get sign-on dialog from the DOM
 const signOnDialog = document.getElementById("signOnDialog");
 const messagesDialog = document.getElementById("messagesDialog");
+const loadingOverlay = document.getElementById("loadingOverlay");
+
+// Loading Spinner Functions
+function showLoadingSpinner(
+  text = "Please wait...",
+  subtext = "Loading teacher dashboard"
+) {
+  if (loadingOverlay) {
+    const loadingText = loadingOverlay.querySelector(".loading-text");
+    const loadingSubtext = loadingOverlay.querySelector(".loading-subtext");
+
+    if (loadingText) loadingText.textContent = text;
+    if (loadingSubtext) loadingSubtext.textContent = subtext;
+
+    loadingOverlay.classList.remove("hidden");
+  }
+}
+
+function hideLoadingSpinner() {
+  if (loadingOverlay) {
+    loadingOverlay.classList.add("hidden");
+  }
+}
+
 // This will be the new central data store for all message threads
 window.messageThreads = new Map();
 window.teacherUnits = [];
@@ -229,7 +253,9 @@ function renderThreadsPanel(options = {}) {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-  // Show sign-on dialog by default
+  // Hide loading spinner and show sign-on dialog by default
+  hideLoadingSpinner();
+
   if (!signOnDialog.open) {
     signOnDialog.showModal();
   }
@@ -250,6 +276,10 @@ document.addEventListener("DOMContentLoaded", function () {
         errorDiv.textContent = "Please enter both username and PIN.";
         return;
       }
+
+      // Show loading spinner during authentication
+      showLoadingSpinner("Authenticating...", "Verifying credentials");
+
       try {
         const hashedPin = await hashPin(pin);
         const response = await fetch(`${API_BASE_URL}/findTeacher`, {
@@ -287,6 +317,12 @@ document.addEventListener("DOMContentLoaded", function () {
             }
           }
 
+          // Update loading message
+          showLoadingSpinner(
+            "Loading Dashboard...",
+            "Setting up your workspace"
+          );
+
           loadTeacherStudents(username);
           initializeMessaging(teacherName);
           loadTeacherLessons(teacherName);
@@ -307,6 +343,11 @@ document.addEventListener("DOMContentLoaded", function () {
               renderAddressBook();
               renderEmailTemplates();
               renderGroups();
+
+              // Hide loading spinner after everything is loaded
+              setTimeout(() => {
+                hideLoadingSpinner();
+              }, 500); // Small delay to ensure smooth transition
             })
             .catch((err) => {
               window.addressBook = [];
@@ -315,11 +356,18 @@ document.addEventListener("DOMContentLoaded", function () {
               renderAddressBook();
               renderEmailTemplates();
               renderGroups();
+
+              // Hide loading spinner even on error
+              setTimeout(() => {
+                hideLoadingSpinner();
+              }, 500);
             });
         } else {
+          hideLoadingSpinner();
           errorDiv.textContent = "Invalid username or PIN.";
         }
       } catch (err) {
+        hideLoadingSpinner();
         console.error("Sign-on failed:", err);
         errorDiv.textContent = "Server error. Please try again.";
       }
