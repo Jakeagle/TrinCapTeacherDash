@@ -1875,55 +1875,120 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
           }
 
-          // Hardcoding periods based on the UI tabs.
-          const availablePeriods = ["01", "02", "03"];
-
-          const periodOptions = availablePeriods
-            .map(
-              (p) => `<option value="${p}">Period ${parseInt(p, 10)}</option>`
-            )
-            .join("");
-
-          const content = `
-            <p>Assigning unit: <strong>${selectedUnitName}</strong></p>
-            <div class="form-group" style="text-align: left; margin-top: 1em;">
-                <label for="classPeriodSelector">Select Class Period to Assign To:</label>
-                <select id="classPeriodSelector" class="dialog-input" style="width: 100%; margin-top: 0.5em;">
-                    ${periodOptions}
-                </select>
-            </div>
-            <button id="confirmAssignBtn" class="btn btn-primary" style="margin-top: 1.5em;">Confirm Assignment</button>
-        `;
-
-          window.openGlobalDialog("Assign Unit to Class", content);
-
-          const confirmBtn = document.getElementById("confirmAssignBtn");
-          if (confirmBtn) {
-            confirmBtn.addEventListener(
-              "click",
-              async () => {
-                const classPeriodSelector = document.getElementById(
-                  "classPeriodSelector"
-                );
-                const selectedPeriod = classPeriodSelector.value;
-
-                try {
-                  const response = await fetch(
-                    `https://tclessonserver-production.up.railway.app/assign-unit`,
-                    {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        teacherName: window.activeTeacherName,
-                        unitValue: selectedUnitValue,
-                        classPeriod: selectedPeriod,
-                      }),
+          // If admin, assign to ALL students, else show period selector
+          if (window.activeTeacherName === "admin@trinity-capital.net") {
+            // Admin: assign to all students
+            window.openGlobalDialog(
+              "Assign Unit to All Students",
+              `<p>Assigning unit: <strong>${selectedUnitName}</strong> to <strong>ALL STUDENTS</strong></p><button id='confirmAssignBtn' class='btn btn-primary' style='margin-top: 1.5em;'>Confirm Assignment</button>`
+            );
+            const confirmBtn = document.getElementById("confirmAssignBtn");
+            if (confirmBtn) {
+              confirmBtn.addEventListener(
+                "click",
+                async () => {
+                  try {
+                    // Fetch all students
+                    const resp = await fetch(`${API_BASE_URL}/allStudents`);
+                    let allStudents = [];
+                    if (resp.ok) {
+                      allStudents = await resp.json();
                     }
+                    // Assign unit to each student
+                    for (const studentId of allStudents) {
+                      await fetch(`${API_BASE_URL}/assignUnitToStudent`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          studentId,
+                          unitId: selectedUnitValue,
+                          unitName: selectedUnitName,
+                          assignedBy: "admin@trinity-capital.net",
+                        }),
+                      });
+                    }
+                    // Notify lesson engine via socket.io
+                    if (window.lessonSocket) {
+                      window.lessonSocket.emit("unitAssignmentUpdated", {
+                        unitId: selectedUnitValue,
+                        unitName: selectedUnitName,
+                        assignedTo: allStudents,
+                        by: "admin@trinity-capital.net",
+                      });
+                    }
+                    alert(
+                      `Successfully assigned '${selectedUnitName}' to ALL students.`
+                    );
+                    window.closeGlobalDialog();
+                    loadTeacherLessons(window.activeTeacherName);
+                  } catch (err) {
+                    console.error("Error assigning unit to all students:", err);
+                    alert("A network error occurred. Please try again.");
+                  }
+                },
+                { once: true }
+              );
+            }
+          } else {
+            // Non-admin: assign to selected period/class
+            // Hardcoding periods based on the UI tabs.
+            const availablePeriods = ["01", "02", "03"];
+            const periodOptions = availablePeriods
+              .map(
+                (p) => `<option value="${p}">Period ${parseInt(p, 10)}</option>`
+              )
+              .join("");
+            const content = `
+              <p>Assigning unit: <strong>${selectedUnitName}</strong></p>
+              <div class="form-group" style="text-align: left; margin-top: 1em;">
+                  <label for="classPeriodSelector">Select Class Period to Assign To:</label>
+                  <select id="classPeriodSelector" class="dialog-input" style="width: 100%; margin-top: 0.5em;">
+                      ${periodOptions}
+                  </select>
+              </div>
+              <button id="confirmAssignBtn" class="btn btn-primary" style="margin-top: 1.5em;">Confirm Assignment</button>
+            `;
+            window.openGlobalDialog("Assign Unit to Class", content);
+            const confirmBtn = document.getElementById("confirmAssignBtn");
+            if (confirmBtn) {
+              confirmBtn.addEventListener(
+                "click",
+                async () => {
+                  const classPeriodSelector = document.getElementById(
+                    "classPeriodSelector"
                   );
-
-                  const result = await response.json();
-
-                  if (response.ok && result.success) {
+                  const selectedPeriod = classPeriodSelector.value;
+                  try {
+                    // Get students in selected period
+                    const resp = await fetch(
+                      `${API_BASE_URL}/studentsInPeriod/${selectedPeriod}`
+                    );
+                    let studentsInPeriod = [];
+                    if (resp.ok) {
+                      studentsInPeriod = await resp.json();
+                    }
+                    // Assign unit to each student in period
+                    for (const studentId of studentsInPeriod) {
+                      await fetch(`${API_BASE_URL}/assignUnitToStudent`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          studentId,
+                          unitId: selectedUnitValue,
+                          unitName: selectedUnitName,
+                          assignedBy: window.activeTeacherName,
+                        }),
+                      });
+                    }
+                    // Notify lesson engine via socket.io
+                    if (window.lessonSocket) {
+                      window.lessonSocket.emit("unitAssignmentUpdated", {
+                        unitId: selectedUnitValue,
+                        unitName: selectedUnitName,
+                        assignedTo: studentsInPeriod,
+                        by: window.activeTeacherName,
+                      });
+                    }
                     alert(
                       `Successfully assigned '${selectedUnitName}' to Period ${parseInt(
                         selectedPeriod,
@@ -1931,20 +1996,15 @@ document.addEventListener("DOMContentLoaded", function () {
                       )}.`
                     );
                     window.closeGlobalDialog();
-                    // Refresh the lesson view to show the assignment status
                     loadTeacherLessons(window.activeTeacherName);
-                  } else {
-                    alert(
-                      `Error: ${result.message || "Failed to assign unit."}`
-                    );
+                  } catch (error) {
+                    console.error("Error assigning unit:", error);
+                    alert("A network error occurred. Please try again.");
                   }
-                } catch (error) {
-                  console.error("Error assigning unit:", error);
-                  alert("A network error occurred. Please try again.");
-                }
-              },
-              { once: true }
-            );
+                },
+                { once: true }
+              );
+            }
           }
         });
 
