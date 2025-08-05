@@ -1,0 +1,20 @@
+{
+  "name": "trinity-capital-teacher-dashboard",
+  "version": "1.0.0",
+  "description": "Teacher Dashboard for Trinity Capital Educational System",
+  "main": "script.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "mongodb": "^6.18.0"
+  },
+  "keywords": [
+    "education",
+    "financial-literacy",
+    "teacher-dashboard"
+  ],
+  "author": "Trinity Capital",
+  "license": "ISC"
+}

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teacher Dashboard</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="dashboard.css" />
+    <style>
+      /* Styles for the new Lesson Management Modal */
+      .lesson-management-container {
+        display: flex;
+        gap: 1.5em;
+        width: 100%;
+        height: 100%;
+        text-align: left;
+      }
+      .assigned-units-view {
+        flex: 3; /* Takes up more space */
+        overflow-y: auto;
+        padding-right: 1em;
+        border-right: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      .lesson-tools {
+        flex: 2; /* Takes up less space */
+      }
+      .assigned-unit-card {
+        background: rgba(0, 0, 0, 0.2);
+        padding: 1em;
+        border-radius: 8px;
+        margin-bottom: 1em;
+      }
+      .assigned-unit-card h6 {
+        color: #00ffcc;
+        border-bottom: 1px solid #00ffcc;
+        padding-bottom: 0.5em;
+        margin-bottom: 1em;
+      }
+      .lesson-list-management {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .lesson-list-management li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5em;
+        border-radius: 4px;
+        margin-bottom: 0.5em;
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .lesson-actions {
+        display: flex;
+        gap: 0.5em;
+      }
+      .save-unit-btn {
+        width: 100%;
+        margin-top: 1em;
+      }
+
+      /* Loading Spinner Styles */
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        backdrop-filter: blur(5px);
+      }
+
+      .loading-overlay.hidden {
+        display: none;
+      }
+
+      .spinner {
+        width: 60px;
+        height: 60px;
+        border: 4px solid rgba(0, 255, 204, 0.3);
+        border-top: 4px solid #00ffcc;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .loading-text {
+        color: #00ffcc;
+        font-size: 18px;
+        font-weight: 500;
+        text-align: center;
+        margin-top: 10px;
+      }
+
+      .loading-subtext {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 14px;
+        text-align: center;
+        margin-top: 5px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+      <div class="spinner"></div>
+      <div class="loading-text">Please wait...</div>
+      <div class="loading-subtext">Loading teacher dashboard</div>
+    </div>
+
+    <nav class="navbar navbar-expand-lg hidden-until-login">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">Teacher Dashboard</a>
+        <span class="navbar-text"></span>
+      </div>
+    </nav>
+
+    <div class="dashboard hidden-until-login">
+      <div class="sidebar">
+        <button class="btn sidebar-action" id="classHealthBtn">
+          📊 Class Financial Health
+        </button>
+        <button class="btn sidebar-action" id="registerStudentsBtn">
+          Register Students
+        </button>
+        <button class="btn sidebar-action" id="createLessonBtn">
+          Create Lesson
+        </button>
+        <button class="btn sidebar-action" id="lessonManagementBtn">
+          Lessons
+        </button>
+        <button class="btn sidebar-action" id="sendClassMessageBtn">
+          Send Class Message
+        </button>
+        <button class="btn sidebar-action" id="emailParentsBtn">
+          Email Parents/Staff
+        </button>
+        <button class="btn sidebar-action" id="accessWhirlpoolBtn">
+          Access Whirlpool
+        </button>
+        <button class="btn sidebar-action" id="messagesBtn">Messages</button>
+      </div>
+
+      <div class="students-container">
+        <div class="class-period">
+          <h4>Period 1</h4>
+          <div class="students-grid">
+            <div class="student-card">
+              <canvas class="student-pie"></canvas>
+              <div class="student-info">
+                <h5>Emily Johnson</h5>
+                <p>Checking: $400</p>
+                <p>Savings: $600</p>
+                <p>Grade: 87</p>
+                <p>Lessons: 4</p>
+                <button class="message-btn">Message</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="class-period">
+          <h4>Period 2</h4>
+          <div class="students-grid"></div>
+        </div>
+
+        <div class="class-period">
+          <h4>Period 3</h4>
+          <div class="students-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sign-On Dialog -->
+    <dialog id="signOnDialog">
+      <div class="dialog-header">Teacher Sign On</div>
+      <div class="dialog-body">
+        <form id="signOnForm" autocomplete="off">
+          <div class="error-message" id="signOnError"></div>
+          <input
+            type="text"
+            id="signOnUsername"
+            placeholder="Username"
+            required
+          />
+          <input type="password" id="signOnPin" placeholder="PIN" required />
+          <button type="submit">Sign In</button>
+        </form>
+      </div>
+    </dialog>
+
+    <!-- Global Reusable Dialog -->
+    <dialog id="globalDialog">
+      <div class="dialog-header">
+        <span id="dialogTitle">Dialog</span>
+        <button id="closeGlobalDialog">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <p id="dialogContent">This is a reusable dialog.</p>
+      </div>
+    </dialog>
+
+    <!-- Messages Dialog -->
+    <dialog id="messagesDialog">
+      <div class="dialog-header">
+        <span id="messagesDialogTitle">Messages</span>
+        <button id="closeMessagesDialog">&times;</button>
+      </div>
+      <div class="dialog-body messages-dialog-body">
+        <div class="threads-panel">
+          <div class="thread-item active-thread" data-thread-id="class-message">
+            <span class="thread-name">Class Message</span>
+            <span class="thread-preview">Welcome to the dashboard!</span>
+          </div>
+          <div class="thread-item" data-thread-id="Emily Johnson">
+            <span class="thread-name">Emily Johnson</span>
+            <span class="thread-preview">Can I ask a question?</span>
+          </div>
+          <!-- More threads can be added here dynamically -->
+        </div>
+        <div class="messages-panel">
+          <div class="messages-list">
+            <!-- Messages will be loaded here -->
+          </div>
+          <div class="message-input-area">
+            <input
+              type="text"
+              id="messageInput"
+              placeholder="Type a message..."
+            />
+            <button id="sendMessageBtn">Send</button>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="classHealth.js"></script>
+    <script src="script.js" type="module"></script>
+  </body>
+</html>
