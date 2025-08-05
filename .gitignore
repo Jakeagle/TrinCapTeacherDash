@@ -46,3 +46,7 @@ temp/
 # Build outputs
 dist/
 build/
+
+# Temporary files
+temp_*.txt
+*.tmp

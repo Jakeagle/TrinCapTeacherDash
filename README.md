@@ -34,12 +34,14 @@ TrinCapTeacher Dash/
 ## Installation
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/Jakeagle/TrinCapTeacherDash.git
    cd TrinCapTeacherDash
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
@@ -59,18 +61,21 @@ TrinCapTeacher Dash/
 ## Key Components
 
 ### Class Health Dashboard
+
 - Real-time financial health monitoring
 - Interactive pie charts for spending categories
 - Student progress tracking
 - Performance analytics
 
 ### Lesson Management
+
 - Dynamic lesson creation
 - Unit-based organization
 - Student assignment tracking
 - Progress monitoring
 
 ### Communication Tools
+
 - Real-time messaging system
 - Email integration with Gmail API
 - Parent/staff communication
@@ -91,4 +96,4 @@ Proprietary software for Trinity Capital educational system.
 
 ---
 
-*Trinity Capital - Building Financial Literacy Through Interactive Learning*
+_Trinity Capital - Building Financial Literacy Through Interactive Learning_
