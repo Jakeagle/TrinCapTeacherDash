@@ -285,7 +285,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const response = await fetch(`${API_BASE_URL}/findTeacher`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ parcel: [username, hashedPin] }),
+          body: JSON.stringify({ parcel: [username, hashedPin], userType: "teacher" }),
         });
         if (response.ok) {
           const data = await response.json();
@@ -3870,6 +3870,186 @@ document.addEventListener("click", function (e) {
       console.log(`Message button clicked for: ${student}`);
     }
   }
+});
+
+
+
+// Feedback button
+document.getElementById("feedbackBtn")?.addEventListener("click", function () {
+  const feedbackContent = `
+    <div class="feedback-dialog-content">
+      <!-- Options view: choose which form to open -->
+      <section id="feedbackOptionsView" class="feedback-options" aria-label="Feedback options">
+        <p class="feedback-subtitle">How can we help? Choose an option below.</p>
+        <div class="feedback-actions">
+          <button class="form__btn form__btn--transfer form__btn--feedback feedback-general-btn" type="button">
+            General feedback
+          </button>
+          <button class="form__btn form__btn--transfer form__btn--bug feedback-bug-btn" type="button">
+            Report a bug
+          </button>
+        </div>
+      </section>
+
+      <!-- General feedback form (hidden by default) -->
+      <section id="generalFeedbackView" class="feedback-form" style="display: none" aria-hidden="true">
+        <label for="gfCategory" class="form-label">Feedback type</label>
+        <select id="gfCategory" class="form__input">
+          <option value="feature">New feature idea</option>
+          <option value="improvement">Ideas for improvement</option>
+          <option value="like">What I like</option>
+          <option value="dislike">What I dislike</option>
+          <option value="other">Other</option>
+        </select>
+
+        <label for="gfDetails" class="form-label">Details</label>
+        <textarea id="gfDetails" class="form__input gf-textarea" rows="6" placeholder="Share your ideas, suggestions, or feedback..."></textarea>
+
+        <div class="form-actions form-actions--right">
+          <button id="gfBackBtn" class="form__btn form__btn--link" type="button">
+            Back
+          </button>
+          <button id="gfSubmitBtn" class="form__btn form__btn--primary" type="button">
+            Submit
+          </button>
+        </div>
+      </section>
+
+      <!-- Bug report form (hidden by default) -->
+      <section id="bugReportView" class="feedback-form" style="display: none" aria-hidden="true">
+        <label for="bugDevice" class="form-label">Device</label>
+        <input id="bugDevice" class="form__input" placeholder="e.g. Windows 10 laptop, iPad" />
+
+        <label for="bugDatetime" class="form-label">Date & Time</label>
+        <input id="bugDatetime" class="form__input" type="datetime-local" />
+
+        <label for="bugSchool" class="form-label">School</label>
+        <input id="bugSchool" class="form__input" placeholder="School name or code" />
+
+        <label for="bugFeatures" class="form-label">Features in use</label>
+        <select id="bugFeatures" class="form__input">
+          <option value="lessons">Lessons</option>
+          <option value="transfers">Transfers</option>
+          <option value="messages">Messages</option>
+          <option value="bills">Bills</option>
+          <option value="other">Other</option>
+        </select>
+
+        <label for="bugDetails" class="form-label">Describe the issue</label>
+        <textarea id="bugDetails" class="form__input gf-textarea" rows="6" placeholder="What happened? Steps to reproduce, expected vs actual..."></textarea>
+
+        <div class="form-actions form-actions--right">
+          <button id="bugBackBtn" class="form__btn form__btn--link" type="button">
+            Back
+          </button>
+          <button id="bugSubmitBtn" class="form__btn form__btn--primary" type="button">
+            Submit
+          </button>
+        </div>
+      </section>
+    </div>
+  `;
+
+  window.openGlobalDialog("Feedback & Report an Issue", feedbackContent);
+
+  const dialogContent = document.getElementById("dialogContent");
+  const optionsView = dialogContent.querySelector("#feedbackOptionsView");
+  const generalView = dialogContent.querySelector("#generalFeedbackView");
+  const bugView = dialogContent.querySelector("#bugReportView");
+
+  const generalBtn = dialogContent.querySelector(".feedback-general-btn");
+  const bugBtn = dialogContent.querySelector(".feedback-bug-btn");
+  const gfBackBtn = dialogContent.querySelector("#gfBackBtn");
+  const bugBackBtn = dialogContent.querySelector("#bugBackBtn");
+  const gfSubmitBtn = dialogContent.querySelector("#gfSubmitBtn");
+  const bugSubmitBtn = dialogContent.querySelector("#bugSubmitBtn");
+
+  const showView = (viewToShow) => {
+    [optionsView, generalView, bugView].forEach((view) => {
+      if (view) {
+        view.style.display = "none";
+        view.setAttribute("aria-hidden", "true");
+      }
+    });
+    if (viewToShow) {
+      viewToShow.style.display = "block";
+      viewToShow.removeAttribute("aria-hidden");
+    }
+  };
+
+  generalBtn?.addEventListener("click", () => showView(generalView));
+  bugBtn?.addEventListener("click", () => showView(bugView));
+  gfBackBtn?.addEventListener("click", () => showView(optionsView));
+  bugBackBtn?.addEventListener("click", () => showView(optionsView));
+
+  // Submit General Feedback
+  gfSubmitBtn?.addEventListener("click", async () => {
+    const category = dialogContent.querySelector("#gfCategory").value;
+    const details = dialogContent.querySelector("#gfDetails").value;
+
+    if (!details.trim()) {
+      alert("Please provide some details for your feedback.");
+      return;
+    }
+
+    const parcel = { type: "general", category, details, userType: 'teacher' };
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/submit-feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ parcel }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        alert("Thank you! Your feedback has been submitted.");
+        window.closeGlobalDialog();
+      } else {
+        alert("Submission failed. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      alert("An error occurred. Please try again later.");
+    }
+  });
+
+  // Submit Bug Report
+  bugSubmitBtn?.addEventListener("click", async () => {
+    const details = dialogContent.querySelector("#bugDetails").value;
+
+    if (!details.trim()) {
+      alert("Please describe the issue you encountered.");
+      return;
+    }
+
+    const parcel = {
+      type: "bug",
+      device: dialogContent.querySelector("#bugDevice").value,
+      datetime: dialogContent.querySelector("#bugDatetime").value,
+      school: dialogContent.querySelector("#bugSchool").value,
+      features: dialogContent.querySelector("#bugFeatures").value,
+      details: details,
+      userType: "teacher",
+    };
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/submit-feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ parcel }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        alert("Thank you! Your bug report has been submitted.");
+        window.closeGlobalDialog();
+      } else {
+        alert("Submission failed. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error submitting bug report:", error);
+      alert("An error occurred. Please try again later.");
+    }
+  });
 });
 
 // Student health buttons - use event delegation since they're added dynamically
