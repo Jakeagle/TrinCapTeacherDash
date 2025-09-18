@@ -3932,80 +3932,34 @@ document.getElementById("feedbackBtn")?.addEventListener("click", function () {
 function openFeedbackDialog() {
   window.openGlobalDialog("Feedback & Report an Issue", "");
   const dialogContent = document.getElementById("dialogContent");
-
-  dialogContent.innerHTML = `
-    <section id="feedbackOptionsView" class="feedback-options" aria-label="Feedback options">
-      <p class="feedback-subtitle">How can we help? Choose an option below.</p>
-      <div class="feedback-actions">
-        <button class="btn btn-modal-action" id="feedback-general-btn" type="button">
-          General Feedback
-        </button>
-        <button class="btn btn-modal-action" id="feedback-bug-btn" type="button">
-          Report a Bug
-        </button>
-      </div>
-    </section>
-
-    <section id="generalFeedbackView" class="feedback-form" style="display: none;" aria-hidden="true">
-      <div class="form-group">
-        <label for="gfCategory">Feedback type</label>
-        <select id="gfCategory" class="dialog-input">
-          <option value="feature">New feature idea</option>
-          <option value="improvement">Ideas for improvement</option>
-          <option value="like">What I like</option>
-          <option value="dislike">What I dislike</option>
-          <option value="other">Other</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="gfDetails">Details</label>
-        <textarea id="gfDetails" class="dialog-textarea" rows="6" placeholder="Share your ideas, suggestions, or feedback..."></textarea>
-      </div>
-      <div class="feedback-form-actions">
-        <button id="gfBackBtn" class="btn btn-modal-action btn-secondary" type="button">Back</button>
-        <button id="gfSubmitBtn" class="btn btn-modal-action" type="button">Submit</button>
-      </div>
-    </section>
-
-    <section id="bugReportView" class="feedback-form" style="display: none;" aria-hidden="true">
-      <div class="form-group">
-        <label for="bugDevice">Device</label>
-        <input id="bugDevice" class="dialog-input" placeholder="e.g. Windows 10 laptop, iPad" />
-      </div>
-      <div class="form-group">
-        <label for="bugDatetime">Date & Time of Issue</label>
-        <input id="bugDatetime" class="dialog-input" type="datetime-local" />
-      </div>
-      <div class="form-group">
-        <label for="bugFeatures">Feature in use</label>
-        <select id="bugFeatures" class="dialog-input">
-          <option value="dashboard">Dashboard</option>
-          <option value="lessons">Lesson Creation/Management</option>
-          <option value="messaging">Messaging</option>
-          <option value="class_health">Class Health</option>
-          <option value="other">Other</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="bugDetails">Describe the issue</label>
-        <textarea id="bugDetails" class="dialog-textarea" rows="6" placeholder="What happened? Steps to reproduce, expected vs actual..."></textarea>
-      </div>
-      <div class="feedback-form-actions">
-        <button id="bugBackBtn" class="btn btn-modal-action btn-secondary" type="button">Back</button>
-        <button id="bugSubmitBtn" class="btn btn-modal-action" type="button">Submit</button>
-      </div>
-    </section>
-  `;
+  const template = document.getElementById("feedbackDialogTemplate");
+  dialogContent.innerHTML = ""; // Clear previous content
+  if (template) {
+    dialogContent.appendChild(template.content.cloneNode(true));
+  } else {
+    dialogContent.innerHTML =
+      "<p>Error: Feedback form could not be loaded.</p>";
+    return;
+  }
 
   const optionsView = dialogContent.querySelector("#feedbackOptionsView");
   const generalView = dialogContent.querySelector("#generalFeedbackView");
   const bugView = dialogContent.querySelector("#bugReportView");
 
   const showView = (view) => {
+    // Hide all views and mark them as hidden for accessibility
     optionsView.style.display = "none";
+    optionsView.setAttribute("aria-hidden", "true");
+
     generalView.style.display = "none";
+    generalView.setAttribute("aria-hidden", "true");
+
     bugView.style.display = "none";
+    bugView.setAttribute("aria-hidden", "true");
+
+    // Show the selected view and mark it as visible for accessibility
     view.style.display = "block";
+    view.setAttribute("aria-hidden", "false");
   };
 
   dialogContent.querySelector("#feedback-general-btn").onclick = () =>
