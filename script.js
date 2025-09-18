@@ -285,7 +285,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const response = await fetch(`${API_BASE_URL}/findTeacher`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ parcel: [username, hashedPin] }),
+          body: JSON.stringify({
+            parcel: [username, hashedPin],
+            userType: "teacher",
+          }),
         });
         if (response.ok) {
           const data = await response.json();
@@ -3902,7 +3905,151 @@ document.getElementById("messagesBtn")?.addEventListener("click", function () {
   console.log("Messages button clicked");
 });
 
+document.getElementById("feedbackBtn")?.addEventListener("click", function () {
+  openFeedbackDialog(); // This will now correctly find the function below
+});
+
 // Class Health button
+function openFeedbackDialog() {
+  window.openGlobalDialog("Feedback & Report an Issue", "");
+  const dialogContent = document.getElementById("dialogContent");
+
+  dialogContent.innerHTML = `
+    <section id="feedbackOptionsView" class="feedback-options" aria-label="Feedback options">
+      <p class="feedback-subtitle">How can we help? Choose an option below.</p>
+      <div class="feedback-actions">
+        <button class="btn btn-modal-action" id="feedback-general-btn" type="button">
+          General Feedback
+        </button>
+        <button class="btn btn-modal-action" id="feedback-bug-btn" type="button">
+          Report a Bug
+        </button>
+      </div>
+    </section>
+
+    <section id="generalFeedbackView" class="feedback-form" style="display: none;" aria-hidden="true">
+      <div class="form-group">
+        <label for="gfCategory">Feedback type</label>
+        <select id="gfCategory" class="dialog-input">
+          <option value="feature">New feature idea</option>
+          <option value="improvement">Ideas for improvement</option>
+          <option value="like">What I like</option>
+          <option value="dislike">What I dislike</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="gfDetails">Details</label>
+        <textarea id="gfDetails" class="dialog-textarea" rows="6" placeholder="Share your ideas, suggestions, or feedback..."></textarea>
+      </div>
+      <div class="feedback-form-actions">
+        <button id="gfBackBtn" class="btn btn-modal-action btn-secondary" type="button">Back</button>
+        <button id="gfSubmitBtn" class="btn btn-modal-action" type="button">Submit</button>
+      </div>
+    </section>
+
+    <section id="bugReportView" class="feedback-form" style="display: none;" aria-hidden="true">
+      <div class="form-group">
+        <label for="bugDevice">Device</label>
+        <input id="bugDevice" class="dialog-input" placeholder="e.g. Windows 10 laptop, iPad" />
+      </div>
+      <div class="form-group">
+        <label for="bugDatetime">Date & Time of Issue</label>
+        <input id="bugDatetime" class="dialog-input" type="datetime-local" />
+      </div>
+      <div class="form-group">
+        <label for="bugFeatures">Feature in use</label>
+        <select id="bugFeatures" class="dialog-input">
+          <option value="dashboard">Dashboard</option>
+          <option value="lessons">Lesson Creation/Management</option>
+          <option value="messaging">Messaging</option>
+          <option value="class_health">Class Health</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="bugDetails">Describe the issue</label>
+        <textarea id="bugDetails" class="dialog-textarea" rows="6" placeholder="What happened? Steps to reproduce, expected vs actual..."></textarea>
+      </div>
+      <div class="feedback-form-actions">
+        <button id="bugBackBtn" class="btn btn-modal-action btn-secondary" type="button">Back</button>
+        <button id="bugSubmitBtn" class="btn btn-modal-action" type="button">Submit</button>
+      </div>
+    </section>
+  `;
+
+  const optionsView = dialogContent.querySelector("#feedbackOptionsView");
+  const generalView = dialogContent.querySelector("#generalFeedbackView");
+  const bugView = dialogContent.querySelector("#bugReportView");
+
+  const showView = (view) => {
+    optionsView.style.display = "none";
+    generalView.style.display = "none";
+    bugView.style.display = "none";
+    view.style.display = "block";
+  };
+
+  dialogContent.querySelector("#feedback-general-btn").onclick = () =>
+    showView(generalView);
+  dialogContent.querySelector("#feedback-bug-btn").onclick = () =>
+    showView(bugView);
+  dialogContent.querySelector("#gfBackBtn").onclick = () =>
+    showView(optionsView);
+  dialogContent.querySelector("#bugBackBtn").onclick = () =>
+    showView(optionsView);
+
+  const submitFeedback = async (type, data) => {
+    const payload = {
+      parcel: {
+        type,
+        userType: "teacher",
+        ...data,
+      },
+    };
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/submit-feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        alert("Thank you! Your feedback has been submitted.");
+        window.closeGlobalDialog();
+      } else {
+        const errorData = await response.json();
+        alert(`Submission failed: ${errorData.message || "Unknown error"}`);
+      }
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      alert("An error occurred. Please check the console and try again.");
+    }
+  };
+
+  dialogContent.querySelector("#gfSubmitBtn").onclick = () => {
+    const data = {
+      category: dialogContent.querySelector("#gfCategory").value,
+      details: dialogContent.querySelector("#gfDetails").value,
+    };
+    if (!data.details)
+      return alert("Please provide details for your feedback.");
+    submitFeedback("general", data);
+  };
+
+  dialogContent.querySelector("#bugSubmitBtn").onclick = () => {
+    const data = {
+      device: dialogContent.querySelector("#bugDevice").value,
+      datetime: dialogContent.querySelector("#bugDatetime").value,
+      school: "N/A (Teacher)", // School is not relevant for teacher dash
+      features: dialogContent.querySelector("#bugFeatures").value,
+      details: dialogContent.querySelector("#bugDetails").value,
+    };
+    if (!data.details) return alert("Please describe the issue in detail.");
+    if (!data.datetime) data.datetime = new Date().toISOString();
+    submitFeedback("bug", data);
+  };
+}
 document
   .getElementById("classHealthBtn")
   ?.addEventListener("click", async function () {
@@ -3919,143 +4066,6 @@ document
       );
     }
   });
-
-// Helper function for class health messaging - called from classHealth.js
-window.sendClassHealthMessage = function (messageContent) {
-  const sentThreadId = sendMessage(
-    window.activeTeacherName,
-    `class-message-${window.activeTeacherName}`,
-    messageContent
-  );
-  window.closeGlobalDialog(); // Close the current dialog
-  messagesDialog.showModal(); // Open the messages dialog
-  renderThreadsPanel({ autoSelectFirst: false }); // Render threads, but don't auto-select the first one
-  // Find and click the specific thread item
-  const threadItem = messagesDialog.querySelector(
-    `[data-thread-id="${CSS.escape(sentThreadId)}"]`
-  );
-  if (threadItem) {
-    threadItem.click();
-  }
-};
-
-// Helper function for individual student health messaging - called from script.js functions
-window.sendStudentHealthMessage = function (studentName, messageContent) {
-  const sentThreadId = sendMessage(
-    window.activeTeacherName,
-    studentName,
-    messageContent
-  );
-  window.closeGlobalDialog(); // Close the current dialog
-  messagesDialog.showModal(); // Open the messages dialog
-  renderThreadsPanel({ autoSelectFirst: false }); // Render threads, but don't auto-select the first one
-  // Find and click the specific thread item
-  const threadItem = messagesDialog.querySelector(
-    `[data-thread-id="${CSS.escape(sentThreadId)}"]`
-  );
-  if (threadItem) {
-    threadItem.click();
-  }
-};
-
-// --- NEW LOGIC FOR MESSAGES DIALOG ---
-const threadsPanel = messagesDialog.querySelector(".threads-panel");
-const messagesBody = messagesDialog.querySelector(".messages-list");
-const messageInput = messagesDialog.querySelector("#messageInput");
-const sendMessageBtn = messagesDialog.querySelector("#sendMessageBtn");
-
-// Function to handle sending a message from the main dialog
-const sendMessageFromDialog = () => {
-  const message = messageInput.value.trim();
-  const activeThread = threadsPanel.querySelector(".thread-item.active-thread");
-
-  if (message && activeThread) {
-    const recipient = activeThread.dataset.threadId;
-    let actualRecipientForServer;
-
-    if (recipient.startsWith("class-message-")) {
-      actualRecipientForServer = recipient; // For class messages, the threadId is the recipientId
-    } else {
-      // For private messages, the threadId is "StudentName_TeacherName"
-      // We need to extract the student's name as the actual recipient for the server
-      const participants = recipient.split("_");
-      actualRecipientForServer = participants.find(
-        (p) => p !== window.activeTeacherName
-      );
-    }
-    sendMessage(window.activeTeacherName, actualRecipientForServer, message);
-    messageInput.value = ""; // Clear input after sending
-    messageInput.focus();
-  }
-};
-
-// Event listeners for sending messages from the main dialog
-sendMessageBtn.addEventListener("click", sendMessageFromDialog);
-messageInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault(); // Prevent new line on Enter
-    sendMessageFromDialog();
-  }
-});
-
-// Handle switching between threads
-threadsPanel.addEventListener("click", (e) => {
-  // This is the event listener for clicking on a thread in the left panel
-  const threadItem = e.target.closest(".thread-item");
-  if (threadItem) {
-    const currentTeacher = window.activeTeacherName;
-    if (!messagesBody || !currentTeacher) return;
-
-    // Remove active class from all threads
-    threadsPanel
-      .querySelectorAll(".thread-item")
-      .forEach((item) => item.classList.remove("active-thread"));
-    // Add active class to the clicked thread
-    threadItem.classList.add("active-thread");
-    // When a thread is clicked, it's considered "read"
-    threadItem.classList.remove("has-unread");
-    const threadId = threadItem.dataset.threadId;
-    if (window.messageThreads.has(threadId)) {
-      window.messageThreads.get(threadId).hasUnread = false;
-    }
-
-    console.log(`Switched to thread: ${threadId}`);
-
-    // Clear previous messages
-    messagesBody.innerHTML = ""; // Clear the messages display area
-
-    // Render messages from the stored data, not from a new fetch
-    const threadData = window.messageThreads.get(threadId);
-    if (threadData && threadData.messages) {
-      threadData.messages.forEach((msg) => {
-        const wrapperElement = document.createElement("div");
-        wrapperElement.classList.add("message-wrapper");
-        wrapperElement.classList.add(
-          msg.senderId === currentTeacher ? "sent" : "received"
-        );
-
-        const senderTag = // This is for displaying the sender's name in class messages
-          msg.isClassMessage && msg.senderId !== currentTeacher
-            ? `<strong class="message-sender-name">${msg.senderId}</strong>`
-            : "";
-        const timestamp = new Date(msg.timestamp).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-        wrapperElement.innerHTML = `
-            <div class="message-item">
-              ${senderTag}
-              <p class="message-content">${msg.messageContent}</p>
-            </div>
-            <span class="message-timestamp">${timestamp}</span>
-          `;
-        messagesBody.appendChild(wrapperElement);
-      });
-
-      messagesBody.scrollTop = messagesBody.scrollHeight; // Scroll to bottom
-    }
-  }
-});
 
 // Fetch and display students by class period after login
 async function loadTeacherStudents(teacherUsername) {

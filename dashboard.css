@@ -1263,7 +1263,7 @@ dialog#messagesDialog::backdrop {
   overflow-y: auto;
   padding-right: 0.5em; /* For scrollbar */
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  scrollbar-color: rgba(0, 255, 255, 0.3) transparent;
 }
 
 .messages-list::-webkit-scrollbar {
@@ -1951,6 +1951,61 @@ dialog#signOnDialog::backdrop {
   border-color: rgba(0, 255, 204, 0.3);
 }
 
+/* --- Feedback Modal Styles --- */
+.feedback-options {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.feedback-subtitle {
+  font-size: 1.1em;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}
+
+.feedback-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.feedback-actions .btn-modal-action {
+  min-width: 200px;
+  font-size: 1.1em;
+  padding: 1rem 2rem;
+}
+
+.feedback-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  text-align: left;
+  animation: fadeInUp 0.4s ease forwards;
+}
+
+.feedback-form .form-group {
+  gap: 0.75em;
+}
+
+.feedback-form .form-group label {
+  font-weight: 600;
+  font-size: 1em;
+}
+
+.feedback-form .dialog-textarea {
+  min-height: 120px;
+}
+
+.feedback-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 /* Register Students Modal Styles */
 .register-students-modal {
   padding: 2rem;
@@ -1998,188 +2053,4 @@ dialog#signOnDialog::backdrop {
   flex: 1;
   font-weight: 500;
   color: white;
-  min-width: 120px;
-}
-
-.form-input {
-  flex: 2;
-  padding: 0.75rem;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: #00ffcc;
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 0 3px rgba(0, 255, 204, 0.2);
-}
-
-.form-input::placeholder {
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.students-inputs-container {
-  margin-top: 1rem;
-}
-
-.period-input-row {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
-  padding: 0.5rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.period-label {
-  flex: 1;
-  font-weight: 500;
-  color: #00ffcc;
-  min-width: 80px;
-}
-
-.period-number-input {
-  width: 100px;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  font-size: 1rem;
-  text-align: center;
-  transition: all 0.3s ease;
-}
-
-.period-number-input:focus {
-  outline: none;
-  border-color: #00ffcc;
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 0 2px rgba(0, 255, 204, 0.2);
-}
-
-.summary-section {
-  background: linear-gradient(
-    135deg,
-    rgba(0, 255, 204, 0.1) 0%,
-    rgba(59, 10, 112, 0.1) 100%
-  );
-  border: 2px solid rgba(0, 255, 204, 0.3);
-  border-radius: 10px;
-  padding: 1.5rem;
-}
-
-.summary-section h3 {
-  color: #00ffcc;
-  margin: 0 0 1rem 0;
-  font-size: 1.3rem;
-  text-align: center;
-}
-
-.summary-content {
-  display: grid;
-  gap: 0.75rem;
-  font-size: 1rem;
-}
-
-.summary-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 6px;
-  border-left: 4px solid #00ffcc;
-}
-
-.summary-label {
-  font-weight: 500;
-}
-
-.summary-value {
-  font-weight: 600;
-  color: #00ffcc;
-}
-
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  margin-top: 1rem;
-}
-
-.btn-primary,
-.btn-secondary {
-  padding: 0.75rem 2rem;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  min-width: 120px;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #00ffcc 0%, #00e6b8 100%);
-  color: #3b0a70;
-}
-
-.btn-primary:hover {
-  background: linear-gradient(135deg, #00e6b8 0%, #00d4a3 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 255, 204, 0.3);
-}
-
-.btn-secondary {
-  background: transparent;
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-}
-
-.btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-2px);
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .register-students-modal {
-    padding: 1rem;
-  }
-
-  .form-section {
-    padding: 1rem;
-  }
-
-  .input-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-  }
-
-  .input-row label {
-    min-width: unset;
-  }
-
-  .period-input-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-  }
-
-  .period-number-input {
-    width: 100%;
-  }
-
-  .form-actions {
-    flex-direction: column;
-  }
 }
