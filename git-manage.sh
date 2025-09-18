@@ -11,6 +11,16 @@ if [ ! -d ".git" ]; then
     exit 1
 fi
 
+# Pull latest changes from the remote repository first to prevent rejection
+echo "🔄 Pulling latest changes from GitHub..."
+git pull origin master
+
+# Check if the pull command failed (e.g., due to merge conflicts)
+if [ $? -ne 0 ]; then
+    echo "❌ Git pull failed. Please resolve any merge conflicts and then run the script again."
+    exit 1
+fi
+
 # Stage all files
 git add .
 
@@ -21,6 +31,7 @@ read -r commit_message
 # Commit
 git commit -m "$commit_message"
 
+echo "🚀 Pushing your changes to GitHub..."
 # Push to master branch on origin remote
 git push origin master
 
