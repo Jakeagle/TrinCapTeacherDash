@@ -29,7 +29,20 @@ function hideLoadingSpinner() {
 window.messageThreads = new Map();
 window.teacherUnits = [];
 window.allTeacherLessons = [];
-const API_BASE_URL = "http://localhost:3000"; // Change as needed
+
+// --- Environment Configuration ---
+const isProduction =
+  window.location.hostname !== "localhost" &&
+  window.location.hostname !== "127.0.0.1";
+
+const PROD_API_BASE_URL = "https://tcstudentserver-production.up.railway.app"; // The URL for your main server (server.js)
+const PROD_LESSON_SERVER_URL =
+  "https://tclessonserver-production.up.railway.app"; // The URL for your lesson server
+
+const API_BASE_URL = isProduction ? PROD_API_BASE_URL : "http://localhost:3000";
+const LESSON_SERVER_URL = isProduction
+  ? PROD_LESSON_SERVER_URL
+  : "http://localhost:4000";
 
 // Helper to hash PIN using SHA-256
 async function hashPin(pin) {
@@ -1763,8 +1776,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
           try {
             const endpoint = isEditing
-              ? "http://localhost:4000/update-lesson"
-              : "http://localhost:4000/save-lesson";
+              ? `${LESSON_SERVER_URL}/update-lesson`
+              : `${LESSON_SERVER_URL}/save-lesson`;
 
             console.log(
               `Making ${isEditing ? "UPDATE" : "CREATE"} request to:`,
@@ -1977,7 +1990,7 @@ document.addEventListener("DOMContentLoaded", function () {
           }
 
           // Save the custom unit to the server
-          fetch("http://localhost:4000/create-custom-unit", {
+          fetch(`${LESSON_SERVER_URL}/create-custom-unit`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -2332,7 +2345,7 @@ document.addEventListener("DOMContentLoaded", function () {
           if (window.editingLessonId) {
             try {
               const response = await fetch(
-                `http://localhost:4000/debug-lesson/${window.editingLessonId}`
+                `${LESSON_SERVER_URL}/debug-lesson/${window.editingLessonId}`
               );
               const data = await response.json();
 
@@ -2431,7 +2444,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
           try {
             const response = await fetch(
-              `http://localhost:4000/upload-whirlpool`,
+              `${LESSON_SERVER_URL}/upload-whirlpool`,
               {
                 method: "POST",
                 headers: {
@@ -3198,7 +3211,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const result = await response.json();
 
             if (response.ok && result.success) {
-              alert(
+              showNotification(
                 `Successfully assigned '${
                   selectedUnit.name
                 }' to Period ${parseInt(selectedPeriod, 10)}.`
@@ -3211,7 +3224,10 @@ document.addEventListener("DOMContentLoaded", function () {
               // Refresh the lesson data to show updated assignment status
               loadTeacherLessons(window.activeTeacherName);
             } else {
-              alert(`Error: ${result.message || "Failed to assign unit."}`);
+              showNotification(
+                `Error: ${result.message || "Failed to assign unit."}`,
+                "error"
+              );
             }
           } catch (error) {
             console.error("Error assigning unit:", error);
@@ -3482,15 +3498,14 @@ async function handleSaveUnit(saveButton) {
     saveButton.textContent = "Saving...";
 
     const requestPayload = {
-      teacherName: window.activeTeacherName,
+      teacherName: window.activeTeacherName, // Ensure this is the teacher's name, not username
       unitData: unitData,
     };
 
     console.log("=== SENDING REQUEST TO SERVER ===");
     console.log("Request URL:", "http://localhost:4000/saveUnitChanges");
     console.log("Request payload:", JSON.stringify(requestPayload, null, 2));
-
-    const response = await fetch("http://localhost:4000/saveUnitChanges", {
+    const response = await fetch(`${LESSON_SERVER_URL}/saveUnitChanges`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -3501,8 +3516,9 @@ async function handleSaveUnit(saveButton) {
     const result = await response.json();
 
     if (response.ok && result.success) {
-      alert(
-        `Unit "${unitData.name}" changes saved successfully! ${unitData.lessons.length} lessons saved.`
+      showNotification(
+        `Unit "${unitData.name}" changes saved successfully!`,
+        "success"
       );
 
       // Update the local data
@@ -3562,7 +3578,10 @@ async function handleSaveUnit(saveButton) {
           8000
         );
       } else {
-        alert(`Error: ${result.message || "Failed to save unit changes"}`);
+        showNotification(
+          `Error: ${result.message || "Failed to save unit changes"}`,
+          "error"
+        );
       }
     }
   } catch (error) {
@@ -3610,7 +3629,7 @@ async function handleCopyDefaultUnit(copyButton) {
     copyButton.disabled = true;
     copyButton.textContent = "📋 Copying...";
 
-    const response = await fetch("http://localhost:4000/copy-default-unit", {
+    const response = await fetch(`${LESSON_SERVER_URL}/copy-default-unit`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -4123,9 +4142,7 @@ async function loadTeacherStudents(teacherUsername) {
 async function loadTeacherLessons(teacherName) {
   try {
     // The lesson server is on port 4000
-    const response = await fetch(
-      `http://localhost:4000/lessons/${teacherName}`
-    );
+    const response = await fetch(`${LESSON_SERVER_URL}/lessons/${teacherName}`);
     if (response.ok) {
       const data = await response.json();
       if (data.success) {
@@ -4696,7 +4713,7 @@ const socket = io(API_BASE_URL, {
 });
 
 // Socket.IO connection to lesson server (port 4000)
-const lessonSocket = io("http://localhost:4000", {
+const lessonSocket = io(LESSON_SERVER_URL, {
   withCredentials: true,
 });
 
