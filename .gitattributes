@@ -1,0 +1,6 @@
+# Normalize all text files to use LF (Unix-style) line endings in the repository.
+# This prevents issues and warnings when working across different operating systems.
+* text=auto eol=lf
+
+# Explicitly declare files that will always have CRLF (Windows-style) line endings.
+*.{cmd,[cC][mM][dD],bat,[bB][aA][tT]} text eol=crlf
