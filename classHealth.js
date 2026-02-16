@@ -2,8 +2,15 @@
 // CLASS HEALTH CALCULATION SYSTEM
 // ====================================================================
 
-// API Configuration
-const API_BASE_URL = "https://tcstudentserver-production.up.railway.app";
+// API Configuration - Automatically switch between production and local
+const isLocalEnvironment = 
+  window.location.hostname === 'localhost' || 
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname.includes('127.0.0.1');
+
+const API_BASE_URL = isLocalEnvironment
+  ? "http://localhost:3000"
+  : "https://tcstudentserver-production.up.railway.app";
 
 /**
  * Calculates individual student financial health score
@@ -18,7 +25,7 @@ const API_BASE_URL = "https://tcstudentserver-production.up.railway.app";
  */
 function calculateStudentHealth(studentData) {
   const {
-    grade = 0,
+    completedLessons = 0,
     checkingBalance = 0,
     savingsBalance = 0,
     bills = [],
@@ -30,7 +37,7 @@ function calculateStudentHealth(studentData) {
   const monthlyBills = bills.reduce((total, bill) => {
     const monthlyAmount = convertToMonthlyAmount(
       Math.abs(bill.amount),
-      bill.frequency
+      bill.interval,
     );
     return total + monthlyAmount;
   }, 0);
@@ -38,14 +45,19 @@ function calculateStudentHealth(studentData) {
   const monthlyIncome = income.reduce((total, incomeSource) => {
     const monthlyAmount = convertToMonthlyAmount(
       Math.abs(incomeSource.amount),
-      incomeSource.frequency
+      incomeSource.interval,
     );
     return total + monthlyAmount;
   }, 0);
 
   // Health Factor Calculations
   const healthFactors = {
-    grade: calculateGradeHealth(grade),
+    grade: calculateGradeHealth(completedLessons),
+    checkingBalance: calculateCheckingBalanceHealth(
+      checkingBalance,
+      monthlyBills,
+    ),
+    savingsBalance: calculateSavingsBalanceHealth(savingsBalance, monthlyBills),
     checking: calculateCheckingHealth(checkingBalance, monthlyBills),
     savings: calculateSavingsHealth(savingsBalance, monthlyBills),
     incomeRatio: calculateIncomeRatioHealth(monthlyIncome, monthlyBills),
@@ -55,12 +67,14 @@ function calculateStudentHealth(studentData) {
 
   // Weight Distribution (totaling 100%)
   const weights = {
-    grade: 0.5, // 50% - Student academic performance
-    checking: 0.08, // 8% - Bill payment capability
-    savings: 0.12, // 12% - Basic savings (3 months)
+    grade: 0.25, // 25% - Student academic performance
+    checkingBalance: 0.2, // 20% - Checking account balance health
+    savingsBalance: 0.2, // 20% - Savings account balance health
+    checking: 0.1, // 10% - Bill payment capability (when bills exist)
+    savings: 0.0, // 0% - Replaced by savingsBalance
     incomeRatio: 0.15, // 15% - Income vs spending ratio
-    emergencyFund: 0.1, // 10% - Emergency fund (6 months)
-    debt: 0.05, // 5% - Debt burden
+    emergencyFund: 0.0, // 0% - Replaced by savingsBalance
+    debt: 0.1, // 10% - Debt burden
   };
 
   // Calculate weighted overall health score
@@ -82,13 +96,67 @@ function calculateStudentHealth(studentData) {
 }
 
 /**
- * Calculate grade-based health (50% of overall health)
- * @param {number} grade - Student grade (0-100)
+ * Calculate grade-based health based on completed lessons (50% of overall health)
+ * @param {number} completedLessons - Number of lessons completed
  * @returns {number} Health score (0-100)
  */
-function calculateGradeHealth(grade) {
-  // Direct mapping: grade percentage = health percentage
-  return Math.max(0, Math.min(100, grade));
+function calculateGradeHealth(completedLessons) {
+  // Map completed lessons to a health score
+  // Assuming a reasonable student completes 10-15 lessons for 100%
+  const maxLessons = 15; // Adjust based on your curriculum
+  const healthScore = (completedLessons / maxLessons) * 100;
+  return Math.max(0, Math.min(100, healthScore));
+}
+
+/**
+ * Calculate checking account balance health independently
+ * BASE: 1.5x monthly expenses
+ * BEST: Covers all expenses + 10% buffer
+ * @param {number} checkingBalance - Current checking balance
+ * @param {number} monthlyBills - Total monthly bills/expenses
+ * @returns {number} Health score (0-100)
+ */
+function calculateCheckingBalanceHealth(checkingBalance, monthlyBills) {
+  // If no bills/expenses exist, evaluate based on absolute balance
+  if (monthlyBills === 0) {
+    // Scale: $0 = 0%, $5000 = 100%
+    const baseAmount = 5000;
+    return Math.max(0, Math.min(100, (checkingBalance / baseAmount) * 100));
+  }
+
+  const baseThreshold = monthlyBills * 1.5; // BASE: 1.5x expenses
+  const bestThreshold = monthlyBills * 1.1; // BEST: expenses + 10% buffer
+
+  if (checkingBalance >= bestThreshold) return 100; // Perfect - covers all + buffer
+  if (checkingBalance >= monthlyBills) return 75; // Good - covers all expenses
+  if (checkingBalance >= baseThreshold * 0.5) return 50; // Fair - covers some
+  return Math.max(0, (checkingBalance / (monthlyBills * 0.5)) * 50); // Linear scale
+}
+
+/**
+ * Calculate savings account balance health independently
+ * BASE: 1 month of expenses
+ * BEST: 6 months of expenses
+ * @param {number} savingsBalance - Current savings balance
+ * @param {number} monthlyBills - Total monthly bills/expenses
+ * @returns {number} Health score (0-100)
+ */
+function calculateSavingsBalanceHealth(savingsBalance, monthlyBills) {
+  // If no bills/expenses exist, evaluate based on absolute balance
+  if (monthlyBills === 0) {
+    // Scale: $0 = 0%, $10000 = 100%
+    const baseAmount = 10000;
+    return Math.max(0, Math.min(100, (savingsBalance / baseAmount) * 100));
+  }
+
+  const baseThreshold = monthlyBills * 1; // BASE: 1 month
+  const bestThreshold = monthlyBills * 6; // BEST: 6 months
+
+  if (savingsBalance >= bestThreshold) return 100; // Perfect - 6 months emergency fund
+  if (savingsBalance >= monthlyBills * 3) return 85; // Excellent - 3 months
+  if (savingsBalance >= monthlyBills * 1) return 70; // Good - 1 month
+  if (savingsBalance >= monthlyBills * 0.5) return 40; // Fair - 2 weeks
+  return Math.max(0, (savingsBalance / (monthlyBills * 0.5)) * 40); // Linear scale
 }
 
 /**
@@ -98,7 +166,9 @@ function calculateGradeHealth(grade) {
  * @returns {number} Health score (0-100)
  */
 function calculateCheckingHealth(checkingBalance, monthlyBills) {
-  if (monthlyBills === 0) return 100; // No bills = perfect health
+  // If no bills exist, this metric shouldn't count as healthy
+  // A student with no bills and no money has nothing to evaluate
+  if (monthlyBills === 0) return 0; // No bills = no data to evaluate
 
   const billCoverageRatio = checkingBalance / monthlyBills;
 
@@ -116,7 +186,8 @@ function calculateCheckingHealth(checkingBalance, monthlyBills) {
  * @returns {number} Health score (0-100)
  */
 function calculateSavingsHealth(savingsBalance, monthlyBills) {
-  if (monthlyBills === 0) return savingsBalance > 0 ? 100 : 50;
+  // No bills = can't evaluate savings health yet
+  if (monthlyBills === 0) return 0;
 
   const monthsCovered = savingsBalance / monthlyBills;
 
@@ -129,6 +200,8 @@ function calculateSavingsHealth(savingsBalance, monthlyBills) {
 
 /**
  * Calculate income-to-spending ratio health
+ * BASE: Breaking even + 10% (1.1x expenses)
+ * BEST: 1.5-2x expenses (perfect)
  * @param {number} monthlyIncome - Total monthly income
  * @param {number} monthlyBills - Total monthly expenses
  * @returns {number} Health score (0-100)
@@ -139,11 +212,13 @@ function calculateIncomeRatioHealth(monthlyIncome, monthlyBills) {
 
   const incomeRatio = monthlyIncome / monthlyBills;
 
-  if (incomeRatio >= 1.5) return 100; // 1.5x or more = excellent
-  if (incomeRatio >= 1.25) return 85; // 1.25x = good
-  if (incomeRatio >= 1.0) return 70; // Break-even = fair
-  if (incomeRatio >= 0.75) return 50; // 75% coverage = poor
-  return Math.max(0, (incomeRatio / 1.5) * 100); // Linear scale
+  if (incomeRatio >= 2.0) return 100; // 2x or more = perfect
+  if (incomeRatio >= 1.75) return 90; // 1.75x = excellent
+  if (incomeRatio >= 1.5) return 80; // 1.5x = very good
+  if (incomeRatio >= 1.25) return 60; // 1.25x = fair
+  if (incomeRatio >= 1.1) return 50; // 1.1x (break-even + 10%) = passing
+  if (incomeRatio >= 1.0) return 25; // Break-even = poor
+  return Math.max(0, (incomeRatio / 1.1) * 25); // Linear scale below break-even
 }
 
 /**
@@ -153,7 +228,8 @@ function calculateIncomeRatioHealth(monthlyIncome, monthlyBills) {
  * @returns {number} Health score (0-100)
  */
 function calculateEmergencyFundHealth(savingsBalance, monthlyBills) {
-  if (monthlyBills === 0) return savingsBalance > 0 ? 100 : 50;
+  // No bills = can't evaluate emergency fund yet
+  if (monthlyBills === 0) return 0;
 
   const monthsCovered = savingsBalance / monthlyBills;
 
@@ -193,13 +269,13 @@ function calculateDebtHealth(debt, monthlyIncome) {
 function convertToMonthlyAmount(amount, frequency) {
   switch (frequency?.toLowerCase()) {
     case "weekly":
-      return amount * 4.33; // Average weeks per month
+      return amount * 4; // Weekly * 4 = monthly
     case "bi-weekly":
-      return amount * 2.17; // Average bi-weekly periods per month
+      return amount * 2; // Bi-weekly * 2 = monthly
     case "monthly":
-      return amount;
+      return amount; // Already monthly
     case "yearly":
-      return amount / 12;
+      return amount / 12; // Yearly / 12 = monthly
     default:
       return amount; // Assume monthly if not specified
   }
@@ -241,7 +317,7 @@ function calculateClassHealth(studentsData) {
   const overallClassHealth =
     studentHealthScores.reduce(
       (sum, student) => sum + student.health.overallHealth,
-      0
+      0,
     ) / totalStudents;
 
   // Calculate average health factors
@@ -251,7 +327,7 @@ function calculateClassHealth(studentsData) {
     averageFactors[factor] =
       studentHealthScores.reduce(
         (sum, student) => sum + student.health.factors[factor],
-        0
+        0,
       ) / totalStudents;
   });
 
@@ -274,7 +350,7 @@ function calculateClassHealth(studentsData) {
 
   // Identify top performers and students needing attention
   const sortedByHealth = [...studentHealthScores].sort(
-    (a, b) => b.health.overallHealth - a.health.overallHealth
+    (a, b) => b.health.overallHealth - a.health.overallHealth,
   );
 
   const topPerformers = sortedByHealth
@@ -303,7 +379,7 @@ function calculateClassHealth(studentsData) {
       Object.entries(averageFactors).map(([key, value]) => [
         key,
         Math.round(value),
-      ])
+      ]),
     ),
     topPerformers,
     needsAttention,
@@ -319,7 +395,7 @@ function calculateClassHealth(studentsData) {
 function getStrongestFactor(factors) {
   // Exclude grade from consideration since it's expected in school setting
   const financialFactors = Object.entries(factors).filter(
-    ([factor]) => factor !== "grade"
+    ([factor]) => factor !== "grade",
   );
 
   if (financialFactors.length === 0) return "checking"; // fallback
@@ -329,7 +405,7 @@ function getStrongestFactor(factors) {
       score > financialFactors.find(([f]) => f === strongest)[1]
         ? factor
         : strongest,
-    financialFactors[0][0]
+    financialFactors[0][0],
   );
 }
 
@@ -341,7 +417,7 @@ function getStrongestFactor(factors) {
 function getWeakestFactor(factors) {
   return Object.entries(factors).reduce(
     (weakest, [factor, score]) => (score < factors[weakest] ? factor : weakest),
-    Object.keys(factors)[0]
+    Object.keys(factors)[0],
   );
 }
 
@@ -356,13 +432,13 @@ function generateRecommendations(healthData) {
 
   if (factors.grade < 70) {
     recommendations.push(
-      "Focus on improving academic performance - it's 50% of financial health"
+      "Focus on improving academic performance - it's 50% of financial health",
     );
   }
 
   if (factors.checking < 70) {
     recommendations.push(
-      "Build checking account balance to cover monthly bills"
+      "Build checking account balance to cover monthly bills",
     );
   }
 
@@ -410,11 +486,11 @@ async function fetchAllStudentFinancialData(teacherUsername) {
 
     // Fetch students assigned to this teacher from User Profiles collection
     const response = await fetch(
-      `${API_BASE_URL}/students/profiles/${teacherUsername}`
+      `${API_BASE_URL}/students/profiles/${teacherUsername}`,
     );
     if (!response.ok) {
       throw new Error(
-        `Failed to fetch student profiles: ${response.status} ${response.statusText}`
+        `Failed to fetch student profiles: ${response.status} ${response.statusText}`,
       );
     }
 
@@ -433,7 +509,15 @@ async function fetchAllStudentFinancialData(teacherUsername) {
       const bills = profile.checkingAccount?.bills || [];
 
       // Extract income from checkingAccount.payments (payments are income sources)
-      const income = profile.checkingAccount?.payments || [];
+      // and savingsAccount.payments if they exist
+      const checkingPayments = profile.checkingAccount?.payments || [];
+      const savingsPayments = profile.savingsAccount?.payments || [];
+      const income = [...checkingPayments, ...savingsPayments];
+
+      // Get completed lessons count
+      const completedLessons = Array.isArray(profile.completedLessons)
+        ? profile.completedLessons.length
+        : 0;
 
       const studentData = {
         name:
@@ -441,7 +525,7 @@ async function fetchAllStudentFinancialData(teacherUsername) {
           `${profile.firstName || ""} ${profile.lastName || ""}`.trim() ||
           profile.username,
         username: profile.username || profile.memberName,
-        grade: parseFloat(profile.grade) || 0,
+        completedLessons: completedLessons,
         checkingBalance:
           profile.checkingAccount?.balanceTotal ||
           profile.checkingAccount?.balance ||
@@ -459,7 +543,7 @@ async function fetchAllStudentFinancialData(teacherUsername) {
     });
 
     console.log(
-      `Transformed ${studentsData.length} student profiles for health calculation`
+      `Transformed ${studentsData.length} student profiles for health calculation`,
     );
     return studentsData;
   } catch (error) {
@@ -513,7 +597,7 @@ async function displayClassHealthDashboard(studentsData) {
                 </div>
                 <span class="level-count" style="font-weight: 600; text-align: center;">${count}</span>
               </div>
-            `
+            `,
               )
               .join("")}
           </div>
@@ -597,7 +681,7 @@ async function displayClassHealthDashboard(studentsData) {
                       ${student.recommendations
                         .map(
                           (rec) =>
-                            `<li style="margin-bottom: 0.3rem; opacity: 0.9;">${rec}</li>`
+                            `<li style="margin-bottom: 0.3rem; opacity: 0.9;">${rec}</li>`,
                         )
                         .join("")}
                     </ul>
@@ -632,7 +716,7 @@ async function displayClassHealthDashboard(studentsData) {
     ?.addEventListener("click", async () => {
       // Reload student data and refresh dashboard
       const freshData = await fetchAllStudentFinancialData(
-        window.activeTeacherUsername
+        window.activeTeacherUsername,
       );
       displayClassHealthDashboard(freshData);
     });
@@ -720,7 +804,7 @@ Keep up the great work building your financial literacy skills!
           window.closeGlobalDialog();
         }
       },
-    }
+    },
   );
 }
 
@@ -737,7 +821,7 @@ async function initializeClassHealth(teacherUsername) {
     console.error("Error initializing class health:", error);
     window.openGlobalDialog(
       "Class Health Error",
-      "Unable to load class health data. Please ensure students have profile data and try again."
+      "Unable to load class health data. Please ensure students have profile data and try again.",
     );
   }
 }
